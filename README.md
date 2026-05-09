@@ -9,12 +9,14 @@ A privacy-preserving and injection-resistant middleware layer for LLM-powered pe
 
 ## What this is
 
-Personal finance chatbots send sensitive user data to third party LLM APIs and trust that data retrieved from their own database is safe. Both assumptions are wrong. This project implements and evaluates a four-layer middleware that:
+Personal finance chatbots send sensitive user data to third-party LLM APIs and trust that data retrieved from their own database is safe. Both assumptions are wrong. This project implements and evaluates a four-layer middleware that:
 
 1. Sanitises incoming user input against known prompt injection patterns
 2. Structurally separates trusted instructions from untrusted data
-3. Redacts PII before transmission to the LLM and remaps it in the response
+3. Redacts PII before transmission to the LLM and re-maps it in the response
 4. Validates LLM output for unauthorised actions or data exfiltration
+
+The middleware is provider-agnostic and works with any LLM API that accepts OpenAI-compatible chat completion requests.
 
 ## Status
 
@@ -41,13 +43,18 @@ python -m app.routes
 
 ## Architecture
 
-See `docs/architecture.md` for the full diagram and threat model.
+The middleware sits between the application backend and the LLM API. All sensitive data passes through it before leaving the trust boundary, and all responses pass back through it before reaching the user.
 
-## Architecture Diagram
+### System overview
+![System architecture](docs/diagrams/system-architecture.svg)
 
-![Architecture Diagram](docs/diagrams/defence-stack.svg)
-![Architecture Diagram](docs/diagrams/system-architecture.svg)
-![Architecture Diagram](docs/diagrams/threat-model.svg)
+### Defence stack
+![Defence stack](docs/diagrams/defence-stack.svg)
+
+### Threat model
+![Threat model](docs/diagrams/threat-model.svg)
+
+See [`docs/architecture.md`](docs/architecture.md) for a full written walkthrough of each layer and the threat model.
 
 ## Research
 
@@ -55,8 +62,8 @@ This work accompanies a paper submitted to the Global Symposium on Adaptive Manu
 
 ## Author
 
-Farhan Bin Hossain
+Farhan Bin Hossain — Final-year Computing Systems student, Ulster University London.
 
 ## Licence
 
-MIT — see LICENSE.
+MIT — see [LICENSE](LICENSE).
