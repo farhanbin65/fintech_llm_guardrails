@@ -44,7 +44,7 @@ This work accompanies a paper submitted to the Global Symposium on Adaptive Manu
 
 ## Author
 
-Final-year Computing Systems student, Ulster University London.
+Farhan Bin Hossain
 
 ## Licence
 
