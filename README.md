@@ -22,12 +22,12 @@ The middleware is provider-agnostic and works with any LLM API that accepts Open
 
 | Layer | Status |
 |---|---|
-| Input sanitiser | Planned |
-| Structural separator | Planned |
-| PII redactor | Planned |
-| Output validator | Planned |
-| Synthetic attack corpus | Planned |
-| Evaluation harness | Planned |
+| Input sanitiser | Complete |
+| Structural separator | Complete |
+| PII redactor | Complete |
+| Output validator | Complete |
+| Synthetic attack corpus | Complete |
+| Evaluation harness | Complete |
 
 ## Quick start
 
