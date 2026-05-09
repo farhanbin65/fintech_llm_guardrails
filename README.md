@@ -43,6 +43,12 @@ python -m app.routes
 
 See `docs/architecture.md` for the full diagram and threat model.
 
+## Architecture Diagram
+
+![Architecture Diagram](diagram/defence-stack.svg)
+![Architecture Diagram](diagram/system-architecture.svg)
+![Architecture Diagram](diagram/threat-model.svg)
+
 ## Research
 
 This work accompanies a paper submitted to the Global Symposium on Adaptive Manufacturing 2026 (GSAM). Pre-print and abstract will be linked here on acceptance.
