@@ -46,15 +46,22 @@ python -m app.routes
 The middleware sits between the application backend and the LLM API. All sensitive data passes through it before leaving the trust boundary, and all responses pass back through it before reaching the user.
 
 ### System overview
-![System architecture](docs/diagrams/system-architecture.svg)
+<div align="center">
+  <img src="docs/diagrams/system-architecture.svg" width="600" alt="System architecture"/>
+</div>
 
 ### Defence stack
-![Defence stack](docs/diagrams/defence-stack.svg)
+<div align="center">
+  <img src="docs/diagrams/defence-stack.svg" width="600" alt="Defence stack"/>
+</div>
 
 ### Threat model
-![Threat model](docs/diagrams/threat-model.svg)
+<div align="center">
+  <img src="docs/diagrams/threat-model.svg" width="600" alt="Threat model"/>
+</div>
 
 See [`docs/architecture.md`](docs/architecture.md) for a full written walkthrough of each layer and the threat model.
+
 
 ## Research
 

@@ -6,19 +6,16 @@ This document describes the system architecture and the four-layer defence middl
 
 ## System overview
 
-The middleware is positioned between the Flask backend and any OpenAI-compatible LLM API. All sensitive user data passes through it before leaving the application trust boundary. All LLM responses pass back through it before reaching the user.
-
-![System architecture](diagrams/system-architecture.svg)
-
-The key design principle is that **no raw user data ever reaches the LLM API directly.** Every request passes through at minimum the input sanitiser, the structural separator, and the PII redactor before the outbound call is made. Every response passes through the output validator before being returned to the user.
-
----
+<div align="center">
+  <img src="diagrams/system-architecture.svg" width="580" alt="System architecture"/>
+</div>
 
 ## Defence stack
 
-The middleware is composed of four sequential defence layers, with a fifth as a stretch goal.
+<div align="center">
+  <img src="diagrams/defence-stack.svg" width="580" alt="Defence stack"/>
+</div>
 
-![Defence stack](diagrams/defence-stack.svg)
 
 ### Layer 1 — Input sanitisation
 
@@ -69,7 +66,9 @@ A small DistilBERT classifier trained on labelled injection vs benign inputs. Pr
 
 The defence stack is designed around five attack vectors specific to LLM-powered personal finance applications. See [`threat-model.md`](threat-model.md) for the full breakdown.
 
-![Threat model](diagrams/threat-model.svg)
+<div align="center">
+  <img src="diagrams/threat-model.svg" width="580" alt="Threat model"/>
+</div>
 
 | Vector | Description | Primary defence layer |
 |---|---|---|
