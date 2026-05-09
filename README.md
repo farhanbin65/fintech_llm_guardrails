@@ -45,9 +45,9 @@ See `docs/architecture.md` for the full diagram and threat model.
 
 ## Architecture Diagram
 
-![Architecture Diagram](diagram/defence-stack.svg)
-![Architecture Diagram](diagram/system-architecture.svg)
-![Architecture Diagram](diagram/threat-model.svg)
+![Architecture Diagram](docs/diagrams/defence-stack.svg)
+![Architecture Diagram](docs/diagrams/system-architecture.svg)
+![Architecture Diagram](docs/diagrams/threat-model.svg)
 
 ## Research
 
