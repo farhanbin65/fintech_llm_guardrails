@@ -1,0 +1,81 @@
+# Architecture
+
+This document describes the system architecture and the four-layer defence middleware that sits at its core.
+
+## System overview
+
+The middleware is positioned between the Flask backend and any OpenAI-compatible LLM API. All sensitive user data passes through the middleware before leaving the application boundary, and all LLM responses pass back through it before reaching the user.
+
+```mermaid
+flowchart TD
+    User[User<br/>Finance tracker UI]
+    Backend[Flask backend<br/>Routes + MongoDB]
+
+    subgraph Middleware [Middleware - novel contribution]
+        direction TB
+        L1[Layer 1<br/>Input sanitiser]
+        L2[Layer 2<br/>Structural separator]
+        L3[Layer 3<br/>PII redactor]
+        L4[Layer 4<br/>Output validator]
+        L1 --> L2 --> L3
+        L4
+    end
+
+    LLM[LLM API<br/>OpenAI-compatible]
+
+    User -->|raw input| Backend
+    Backend --> L1
+    L3 -->|sanitised + redacted prompt| LLM
+    LLM -->|response| L4
+    L4 -->|validated response| Backend
+    Backend -->|safe response| User
+
+    style Middleware fill:#E6F1FB,stroke:#185FA5,stroke-width:2px
+    style LLM fill:#FAECE7,stroke:#993C1D
+```
+
+## Defence stack
+
+The middleware is composed of four sequential defence layers plus one stretch goal. Each layer addresses a specific class of risk identified in the threat model.
+
+```mermaid
+flowchart TD
+    Start([Incoming request])
+
+    L1[Layer 1 - Input sanitisation<br/>Regex and keyword filters<br/>Catches obvious injection patterns]
+    L2[Layer 2 - Structural separation<br/>Wrap untrusted data in delimiters<br/>Catches indirect injection from DB and CSV]
+    L3[Layer 3 - PII redaction<br/>Presidio plus financial entity rules<br/>Catches PII leakage to third-party LLM]
+    LLM[LLM API call<br/>External, OpenAI-compatible]
+    L4[Layer 4 - Output validation<br/>Reject unauthorised actions or external URLs<br/>Catches action hijacking and exfiltration]
+    L5[Layer 5 - Behavioural classifier<br/>Stretch goal - DistilBERT classifier<br/>Only if Layers 1 to 4 ship on time]
+    Deferred[Deferred - guard models, constitutional AI<br/>Future work, out of scope for this paper]
+    End([Validated response to user])
+
+    Start --> L1 --> L2 --> L3 --> LLM --> L4 --> L5 --> Deferred --> End
+
+    style L1 fill:#EAF3DE,stroke:#3B6D11
+    style L2 fill:#EAF3DE,stroke:#3B6D11
+    style L3 fill:#EAF3DE,stroke:#3B6D11
+    style L4 fill:#EAF3DE,stroke:#3B6D11
+    style L5 fill:#FAEEDA,stroke:#854F0B
+    style Deferred fill:#F1EFE8,stroke:#5F5E5A
+    style LLM fill:#FAECE7,stroke:#993C1D
+```
+
+### Layer summary
+
+| Layer | Status | Effort | Defends against |
+|---|---|---|---|
+| 1. Input sanitiser | MVP | 1–2 days | Direct chat injection |
+| 2. Structural separator | MVP | 1 day | Indirect injection from stored data |
+| 3. PII redactor | MVP | 3–4 days | PII leakage across the API boundary |
+| 4. Output validator | MVP | 2 days | Action hijacking, exfiltration |
+| 5. Behavioural classifier | Stretch | 5–7 days | Novel or obfuscated injection |
+
+## Threat model
+
+The defence stack responds to five attack vectors specific to LLM-powered personal finance applications. The full threat model lives in [`threat-model.md`](./threat-model.md) (forthcoming).
+
+## Provider independence
+
+The middleware does not depend on any specific LLM provider. The reference implementation uses an OpenAI-compatible chat completion endpoint, configurable via environment variables. See [`.env.example`](../.env.example) for configuration.
