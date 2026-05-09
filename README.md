@@ -1,6 +1,11 @@
 # Fintech LLM Guardrails
 
-A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project for GSAM 2026 (Ulster University).
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-in%20development-orange.svg)
+![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
+
+A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project for GSAM 2026 (Ulster University London).
 
 ## What this is
 
