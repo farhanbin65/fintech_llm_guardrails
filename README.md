@@ -33,7 +33,7 @@ Personal finance chatbots send sensitive user data to third party LLM APIs and t
 git clone https://github.com/farhanbin65/fintech_llm_guard
 cd fintech_llm_guard
 python -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
+source venv/bin/activate    
 pip install -r requirements.txt
 cp .env.example .env        
 python -m app.routes
