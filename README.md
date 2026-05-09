@@ -54,7 +54,7 @@ The middleware sits between the application backend and the LLM API. All sensiti
 ### Threat model
 ![Threat model](docs/diagrams/threat-model.svg)
 
-See [`docs/architecture.md`](docs/architecture.md) for a full written walkthrough of each layer and the threat model.
+See [`docs/architecture.md `](docs/architecture.md ) for a full written walkthrough of each layer and the threat model.
 
 ## Research
 
