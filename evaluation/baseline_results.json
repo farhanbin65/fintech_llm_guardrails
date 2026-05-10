@@ -1,0 +1,37 @@
+{
+  "corpus": {
+    "total_attack_cases": 107,
+    "expected_blocked_cases": 54,
+    "legitimate_query_cases": 60
+  },
+  "presidio": {
+    "note": "PII detection only — no injection defence. Block rate not applicable as a standalone injection guard.",
+    "block_rate_pct": null,
+    "fp_rate_pct": null,
+    "mean_latency_ms": null,
+    "capabilities": ["pii_redaction"]
+  },
+  "llm_guard": {
+    "block_rate_pct": 68.5,
+    "fp_rate_pct": 0.0,
+    "mean_latency_ms": 229.9,
+    "median_latency_ms": 223.1,
+    "tp": 37,
+    "fp": 0,
+    "n_attacks": 54,
+    "n_fp": 60,
+    "capabilities": ["injection_detection"],
+    "model": "protectai/deberta-v3-base-prompt-injection-v2"
+  },
+  "fintech_llm_guard": {
+    "block_rate_pct": 100.0,
+    "fp_rate_pct": 0.0,
+    "mean_latency_ms": 5.8,
+    "median_latency_ms": 5.3,
+    "tp": 54,
+    "fp": 0,
+    "n_attacks": 54,
+    "n_fp": 60,
+    "capabilities": ["injection_detection", "pii_redaction", "output_validation", "fintech_entities", "response_remapping"]
+  }
+}
