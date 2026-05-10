@@ -1,9 +1,9 @@
 {
-  "block_rate_pct": 0.0,
+  "block_rate_pct": 68.5,
   "fp_rate_pct": 0.0,
-  "mean_latency_ms": 0.0,
-  "median_latency_ms": 0.0,
-  "tp": 0,
+  "mean_latency_ms": 300.3,
+  "median_latency_ms": 239.4,
+  "tp": 37,
   "fp": 0,
   "n_attacks": 54,
   "n_fp": 60
