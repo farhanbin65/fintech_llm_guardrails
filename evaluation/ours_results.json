@@ -1,0 +1,10 @@
+{
+  "block_rate_pct": 100.0,
+  "fp_rate_pct": 0.0,
+  "mean_latency_ms": 5.8,
+  "median_latency_ms": 5.3,
+  "tp": 54,
+  "fp": 0,
+  "n_attacks": 54,
+  "n_fp": 60
+}
