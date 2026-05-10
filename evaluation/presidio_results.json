@@ -1,0 +1,8 @@
+{
+  "fp_rate_pct": 56.7,
+  "mean_latency_ms": 10.3,
+  "median_latency_ms": 7.7,
+  "fp": 34,
+  "n_fp": 60,
+  "note": "PII detection only — block rate not applicable as injection guard. High FP rate reflects Presidio treating legitimate financial terms as PII entities."
+}
