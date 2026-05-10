@@ -1,0 +1,141 @@
+{
+  "summary": {
+    "mean_rouge1": 0.9855,
+    "mean_rouge2": 0.9669,
+    "mean_rougeL": 0.9855,
+    "n_cases": 10,
+    "methodology": "Mock LLM returns fixed response per case. ROUGE measures whether token re-mapping restores response to reference quality. R-010 is a no-PII control establishing the upper bound."
+  },
+  "cases": [
+    {
+      "id": "R-001",
+      "category": "account_number",
+      "description": "Account number in spending query",
+      "pii_entities_found": [
+        "UK_ACCOUNT_NUMBER"
+      ],
+      "remapped_response": "12345678 spent \u00a3240 on groceries last month.",
+      "reference_response": "Account 12345678 spent \u00a3240 on groceries last month.",
+      "rouge1_f": 0.9333,
+      "rouge2_f": 0.9231,
+      "rougeL_f": 0.9333
+    },
+    {
+      "id": "R-002",
+      "category": "email",
+      "description": "Email address in payment query",
+      "pii_entities_found": [
+        "EMAIL_ADDRESS"
+      ],
+      "remapped_response": "Yes, sarah.jones@gmail.com sent you \u00a3150 on 3rd May.",
+      "reference_response": "Yes, sarah.jones@gmail.com sent you \u00a3150 on 3rd May.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-003",
+      "category": "person_name",
+      "description": "Full name in transaction summary",
+      "pii_entities_found": [
+        "PERSON"
+      ],
+      "remapped_response": "James Wilson made 3 payments totalling \u00a3450 this month.",
+      "reference_response": "James Wilson made 3 payments totalling \u00a3450 this month.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-004",
+      "category": "sort_code",
+      "description": "Sort code in direct debit query",
+      "pii_entities_found": [
+        "UK_SORT_CODE"
+      ],
+      "remapped_response": "Yes, the direct debit for sort code 20-00-00 is active and due on the 1st.",
+      "reference_response": "Yes, the direct debit for sort code 20-00-00 is active and due on the 1st.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-005",
+      "category": "ni_number",
+      "description": "NI number in tax query",
+      "pii_entities_found": [
+        "UK_NI_NUMBER"
+      ],
+      "remapped_response": "Your NI number AB123456C will appear on your annual tax summary from HMRC.",
+      "reference_response": "Your NI number AB123456C will appear on your annual tax summary from HMRC.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-006",
+      "category": "phone_number",
+      "description": "Phone number in alert query",
+      "pii_entities_found": [
+        "PHONE_NUMBER"
+      ],
+      "remapped_response": "Yes, an alert was sent to +447911123456 for the \u00a3800 transaction on 5th May.",
+      "reference_response": "Yes, an alert was sent to +447911123456 for the \u00a3800 transaction on 5th May.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-007",
+      "category": "iban",
+      "description": "IBAN in wire transfer query",
+      "pii_entities_found": [
+        "IBAN_CODE"
+      ],
+      "remapped_response": "Yes, the wire transfer to GB29NWBK60161331926819 was processed on 2nd May.",
+      "reference_response": "Yes, the wire transfer to GB29NWBK60161331926819 was processed on 2nd May.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    },
+    {
+      "id": "R-008",
+      "category": "multiple_pii",
+      "description": "Multiple PII types in single query",
+      "pii_entities_found": [
+        "EMAIL_ADDRESS",
+        "UK_ACCOUNT_NUMBER"
+      ],
+      "remapped_response": "john.doe@email.com made 2 payments to 87654321 totalling \u00a3600.",
+      "reference_response": "john.doe@email.com made 2 payments to account 87654321 totalling \u00a3600.",
+      "rouge1_f": 0.9565,
+      "rouge2_f": 0.8571,
+      "rougeL_f": 0.9565
+    },
+    {
+      "id": "R-009",
+      "category": "multiple_pii",
+      "description": "Name and account in salary query",
+      "pii_entities_found": [
+        "PERSON",
+        "UK_ACCOUNT_NUMBER"
+      ],
+      "remapped_response": "Yes, Emma Clarke received her salary of \u00a32,800 into 11223344 on 28th April.",
+      "reference_response": "Yes, Emma Clarke received her salary of \u00a32,800 into account 11223344 on 28th April.",
+      "rouge1_f": 0.9655,
+      "rouge2_f": 0.8889,
+      "rougeL_f": 0.9655
+    },
+    {
+      "id": "R-010",
+      "category": "no_pii_control",
+      "description": "No PII \u2014 baseline control case",
+      "pii_entities_found": [],
+      "remapped_response": "You spent \u00a3180 on transport last month, split across TFL and petrol.",
+      "reference_response": "You spent \u00a3180 on transport last month, split across TFL and petrol.",
+      "rouge1_f": 1.0,
+      "rouge2_f": 1.0,
+      "rougeL_f": 1.0
+    }
+  ]
+}
