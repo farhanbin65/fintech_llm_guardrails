@@ -10,7 +10,6 @@
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
 
 **Author:** Farhan Bin Shafique — Final Year Computing Systems, Ulster University London  
-**Supervisor:** GSAM 2026 Research Track  
 **Licence:** MIT
 
 ---
@@ -27,41 +26,45 @@ Existing tools address one or the other. None address both in a single, deployab
 ---
 
 ## The Solution — Four-Layer Middleware Pipeline
+
+```
 User Query + Transactions
-│
-▼
-┌─────────────────────────┐
-│  Layer 1: Input         │  Blocks prompt injection patterns
-│  Sanitiser              │  (role overrides, ChatML tokens,
-│                         │  classic injection phrases)
-└────────────┬────────────┘
-│
-▼
-┌─────────────────────────┐
-│  Layer 2: Structural    │  Wraps financial data in tagged
-│  Separator              │  context blocks, escapes angle
-│                         │  brackets in user-supplied text
-└────────────┬────────────┘
-│
-▼
-┌─────────────────────────┐
-│  Layer 3: PII           │  Detects and pseudonymises PII
-│  Redactor               │  (regex + spaCy NER). Maintains
-│                         │  mapping for response re-mapping
-└────────────┬────────────┘
-│
-▼
-LLM API
-│
-▼
-┌─────────────────────────┐
-│  Layer 4: Output        │  Scans LLM response for residual
-│  Validator              │  PII leakage before returning
-│                         │  to the user
-└─────────────────────────┘
-│
-▼
-Safe Response
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│  Layer 1: Input Sanitiser                           │
+│  Blocks prompt injection patterns                   │
+│  (role overrides, ChatML tokens,                    │
+│  classic injection phrases)                         │
+└────────────────────────┬────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│  Layer 2: Structural Separator                      │
+│  Wraps financial data in tagged context blocks,     │
+│  escapes angle brackets in user-supplied text       │
+└────────────────────────┬────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│  Layer 3: PII Redactor                              │
+│  Detects and pseudonymises PII (regex + spaCy NER)  │
+│  Maintains mapping for response re-mapping          │
+└────────────────────────┬────────────────────────────┘
+                         │
+                         ▼
+                     LLM API
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│  Layer 4: Output Validator                          │
+│  Scans LLM response for residual PII leakage        │
+│  before returning to the user                       │
+└────────────────────────┬────────────────────────────┘
+                         │
+                         ▼
+                  Safe Response
+```
 
 ---
 
@@ -88,21 +91,25 @@ See [`docs/architecture.md`](docs/architecture.md) for a full written walkthroug
 ## Evaluation Results
 
 ### Benchmark — 25-case Synthetic Corpus
-────────────────────────────────────────────────────────────────────────
-Fintech LLM Guardrails — Evaluation Results
-────────────────────────────────────────────────────────────────────────
-V    CASES   ACCURACY    BLOCK RATE    PII COV    AVG MS    MAX MS
-────────────────────────────────────────────────────────────────────────
-1    8       100.0%        100.0%          N/A        4.45      22.31
-2    5       100.0%        100.0%          100.0%     20.39     40.86
-3    4       100.0%        100.0%          100.0%     31.16     61.64
-4    4       100.0%        100.0%          N/A        11.65     14.36
-5    4       100.0%        100.0%          100.0%     13.12     14.32
-────────────────────────────────────────────────────────────────────────
-Overall accuracy: 25/25 (100.0%)
-────────────────────────────────────────────────────────────────────────
 
-Vector 1 shows N/A for PII coverage — direct injection attacks are blocked by Layer 1 before Layer 3 executes. Vector 3 peak latency (61ms) reflects a worst-case input containing IBAN, email, and sort code simultaneously.
+```
+────────────────────────────────────────────────────────────────────────
+  Fintech LLM Guardrails — Evaluation Results
+────────────────────────────────────────────────────────────────────────
+  V    CASES   ACCURACY    BLOCK RATE    PII COV    AVG MS    MAX MS
+────────────────────────────────────────────────────────────────────────
+  1    8       100.0%        100.0%          N/A        4.45      22.31
+  2    5       100.0%        100.0%          100.0%     20.39     40.86
+  3    4       100.0%        100.0%          100.0%     31.16     61.64
+  4    4       100.0%        100.0%          N/A        11.65     14.36
+  5    4       100.0%        100.0%          100.0%     13.12     14.32
+────────────────────────────────────────────────────────────────────────
+  Overall accuracy: 25/25 (100.0%)
+────────────────────────────────────────────────────────────────────────
+```
+
+> **Vector 1 — N/A for PII coverage:** Direct injection attacks are blocked by Layer 1 before Layer 3 executes.  
+> **Vector 3 — 61ms peak:** Worst-case input containing IBAN, email, and sort code simultaneously — three entity types detected and redacted in a single pass.
 
 ### Extended Corpus — 107 Cases, 8 Attack Vectors
 
@@ -138,7 +145,7 @@ Sub-1.0 cases result from the word `"account"` being redacted alongside the acco
 | Fintech-specific entities | ❌ | ❌ | ✅ |
 | Response re-mapping | ❌ | ❌ | ✅ |
 
-Our system matches or exceeds both baselines on every measurable metric, while being approximately 40× faster than LLM Guard.
+Our system matches or exceeds both baselines on every measurable metric, while being approximately **40× faster** than LLM Guard.
 
 ---
 
@@ -159,9 +166,11 @@ Our system matches or exceeds both baselines on every measurable metric, while b
 ---
 
 ## Repository Structure
+
+```
 fintech_llm_guard/
 ├── middleware/
-│   ├── init.py
+│   ├── __init__.py
 │   ├── sanitiser.py          # Layer 1 — injection pattern detection
 │   ├── separator.py          # Layer 2 — structural context wrapping
 │   ├── redactor.py           # Layer 3 — PII detection and pseudonymisation
@@ -171,7 +180,7 @@ fintech_llm_guard/
 │   ├── test_sanitiser.py
 │   ├── test_separator.py
 │   └── baselines/
-│       ├── README.md
+│       ├── README.md         # ⚠️ Run each script in a separate terminal
 │       ├── run_presidio_only.py
 │       ├── run_llmguard_only.py
 │       └── run_ours_only.py
@@ -195,6 +204,7 @@ fintech_llm_guard/
 ├── .gitignore
 ├── requirements.txt
 └── README.md
+```
 
 ---
 
@@ -226,36 +236,46 @@ python evaluation/run_benchmark.py
 python evaluation/run_rouge.py
 ```
 
-**Run baselines (each in a separate terminal — see `tests/baselines/README.md`):**
+**Run baselines** (each in a **separate terminal** — they load ~700MB models and will OOM-kill if combined):
 
 ```bash
+# Terminal 1
 python tests/baselines/run_presidio_only.py
+
+# Terminal 2
 python tests/baselines/run_llmguard_only.py
+
+# Terminal 3
 python tests/baselines/run_ours_only.py
 ```
+
+Results are saved to `evaluation/` as JSON.
 
 ---
 
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill in your values:
+
+```
 LLM_API_KEY=your_llm_api_key_here
 LLM_API_URL=https://your-llm-provider/v1
+```
 
-The middleware is provider-agnostic — it works with any OpenAI-compatible LLM API endpoint.
+The middleware is **provider-agnostic** — it works with any OpenAI-compatible LLM API endpoint.
 
 ---
 
 ## Research Context
 
-This project is a research prototype developed as part of a GSAM 2026 paper submission:
+This project is a proof-of-concept research prototype developed as part of a GSAM 2026 paper submission:
 
 > **"Privacy by Design in LLM-Powered Fintech: A Middleware Approach to PII Redaction and Prompt Injection Defence"**  
 > GSAM 2026 — Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026
 
 The work addresses a gap in existing literature: while PII redaction tools (Presidio) and injection detection models (LLM Guard) exist independently, no prior work proposes a unified, deployable pipeline combining both concerns in a fintech-specific context.
 
-Regulatory alignment: GDPR Article 25 (data protection by design), UK FCA AI governance guidelines, PSD2 open banking data obligations.
+**Regulatory alignment:** GDPR Article 25 (data protection by design), UK FCA AI governance guidelines, PSD2 open banking data obligations.
 
 ---
 
