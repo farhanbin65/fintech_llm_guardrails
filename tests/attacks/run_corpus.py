@@ -37,6 +37,9 @@ CORPUS_FILES = [
     "tests/attacks/vector3_csv.json",
     "tests/attacks/vector4_action.json",
     "tests/attacks/vector5_exfiltration.json",
+    "tests/attacks/vector6_obfuscated.json",
+    "tests/attacks/vector7_pii_direct.json",
+    "tests/attacks/vector8_context.json",
 ]
 
 
