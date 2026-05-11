@@ -102,16 +102,66 @@ def _contains_encoded_injection(text: str) -> bool:
     return False
 
 
-# ── Normalisation ─────────────────────────────────────────────────────────────
+# ── Homoglyph map ────────────────────────────────────────────────────────────
+_HOMOGLYPHS = {
+    "\u0430": "a", "\u0435": "e", "\u0456": "i",
+    "\u043e": "o", "\u0440": "r", "\u0455": "s",
+    "\u0445": "x", "\u0443": "y", "\u0441": "c",
+    "\u00e0": "a", "\u00e1": "a", "\u00e2": "a", "\u00e4": "a",
+    "\u00e8": "e", "\u00e9": "e", "\u00ea": "e", "\u00eb": "e",
+    "\u00ec": "i", "\u00ed": "i", "\u00ee": "i", "\u00ef": "i",
+    "\u00f2": "o", "\u00f3": "o", "\u00f4": "o", "\u00f6": "o",
+    "\u03b1": "a", "\u03b5": "e", "\u03b9": "i", "\u03bf": "o",
+    "\u03c1": "r", "\u03c5": "y", "\u03bd": "v",
+}
 
+# ── Leetspeak map ─────────────────────────────────────────────────────────────
+_LEET = {
+    "0": "o", "1": "i", "3": "e", "4": "a",
+    "5": "s", "6": "g", "7": "t", "8": "b", "9": "g",
+    "@": "a", "$": "s", "!": "i",
+}
+
+# ── Morse decoder ─────────────────────────────────────────────────────────────
+_MORSE = {
+    ".-": "a", "-...": "b", "-.-.": "c", "-..": "d", ".": "e",
+    "..-.": "f", "--.": "g", "....": "h", "..": "i", ".---": "j",
+    "-.-": "k", ".-..": "l", "--": "m", "-.": "n", "---": "o",
+    ".--.": "p", "--.-": "q", ".-.": "r", "...": "s", "-": "t",
+    "..-": "u", "...-": "v", ".--": "w", "-..-": "x", "-.--": "y",
+    "--..": "z",
+}
+
+def _decode_morse(text: str) -> str:
+    """Decode morse if text consists only of dots, dashes and spaces."""
+    stripped = text.strip()
+    if not re.match(r"^[.\- /]+$", stripped):
+        return text
+    words = stripped.split("  ")
+    decoded = []
+    for word in words:
+        decoded.append("".join(_MORSE.get(code, "?") for code in word.strip().split()))
+    return " ".join(decoded)
+
+# ── Normalisation ─────────────────────────────────────────────────────────────
 def _normalise(text: str) -> str:
     """
-    Strip zero-width characters and normalise Unicode to NFC
-    before pattern matching.
+    Multi-stage normalisation before pattern matching:
+    1. Strip zero-width and directional control characters
+    2. NFC Unicode normalisation
+    3. Homoglyph substitution (Cyrillic/Greek lookalikes to Latin)
+    4. Collapse spaced-out characters (i g n o r e -> ignore)
+    5. Leetspeak expansion (1gn0r3 -> ignore)
     """
-    zero_width = {"\u200b", "\u200c", "\u200d", "\ufeff", "\u202e"}
+    import unicodedata as _ud
+    zero_width = {"\u200b", "\u200c", "\u200d", "\ufeff", "\u202e",
+                  "\u200e", "\u200f", "\u2028", "\u2029"}
     cleaned = "".join(ch for ch in text if ch not in zero_width)
-    return unicodedata.normalize("NFC", cleaned)
+    cleaned = _ud.normalize("NFC", cleaned)
+    cleaned = "".join(_HOMOGLYPHS.get(ch, ch) for ch in cleaned)
+    cleaned = re.sub(r"\b([a-zA-Z]) (?=[a-zA-Z]\b)", r"\1", cleaned)
+    cleaned = "".join(_LEET.get(ch, ch) for ch in cleaned)
+    return cleaned
 
 
 # ── Result dataclass ──────────────────────────────────────────────────────────
@@ -139,6 +189,17 @@ class InputSanitiser:
                 matched_patterns=[],
                 original_input=text or "",
             )
+
+        # Morse decode check — run before normalise
+        morse_decoded = _decode_morse(text)
+        if morse_decoded != text:
+            morse_normalised = _normalise(morse_decoded)
+            if any(p.search(morse_normalised) for p in self._compiled):
+                return SanitisationResult(
+                    is_suspicious=True,
+                    matched_patterns=["morse_encoded_injection"],
+                    original_input=text,
+                )
 
         normalised = _normalise(text)
         matched = [p.pattern for p in self._compiled if p.search(normalised)]
