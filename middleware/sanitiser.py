@@ -19,11 +19,14 @@ _DIRECT_OVERRIDE = [
     r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions",
     r"disregard\s+(the\s+)?(system|prior)\s+prompt",
     r"forget\s+(your\s+)?role",
+    r"forget\s+(everything|all|what).{0,40}(told|said|discussed|talked|instructed)",
+    r"forget\s+about\s+all\s+(the\s+)?previous",
     r"new\s+instruction\s*:",
     r"override\s+(directive|instruction|mode|command)",
     r"from\s+now\s+on\s+(you\s+)?(will|must|should|are)",
     r"you\s+are\s+now\s+\w+",
     r"act\s+as\s+(an?\s+)?(ai|assistant|model|bot|gpt|llm)?\s*(with\s+no|without)",
+    r"act\s+as\s+(an?\s+)?(unrestricted|unfiltered|jailbroken|evil|dan)",
     r"pretend\s+(you\s+have\s+no|there\s+are\s+no)\s+rules",
     r"sudo\s*:",
     r"enable\s+developer\s+mode",
@@ -31,6 +34,10 @@ _DIRECT_OVERRIDE = [
     r"hypothetically.{0,40}(no\s+restrictions|reveal|output|show)",
     r"repeat\s+after\s+me",
     r"translate\s+.{0,60}(then\s+)?(execute|follow|run|apply)",
+    r"now\s+(concentrate|focus)\s+on\s+(a\s+)?new\s+(task|instruction|role|job)",
+    r"now\s+(comes?|is)\s+(a\s+)?new\s+(task|instruction|role|job)",
+    r"(task|instruction|role)\s*[:.]\s*(ignore|forget|disregard)",
+    r"={3,}.{0,30}(end|stop|ignore|now).{0,60}(print|output|reveal|show|above|prompt)",
 ]
 
 _STRUCTURAL = [

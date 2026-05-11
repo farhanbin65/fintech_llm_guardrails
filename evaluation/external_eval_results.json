@@ -1,0 +1,15 @@
+{
+  "dataset": "deepset/prompt-injections",
+  "split": "test",
+  "total": 116,
+  "TP": 11,
+  "FP": 0,
+  "TN": 56,
+  "FN": 49,
+  "accuracy_pct": 57.76,
+  "precision_pct": 100.0,
+  "recall_pct": 18.33,
+  "f1_pct": 30.99,
+  "fpr_pct": 0.0,
+  "mean_latency_ms": 0.51
+}
