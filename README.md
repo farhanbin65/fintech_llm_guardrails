@@ -2,14 +2,14 @@
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-development-green.svg)
+![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
 ![Tests](https://img.shields.io/badge/tests-25%2F25%20passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/attack%20block%20rate-100%25-brightgreen.svg)
 
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
 
-**Author:** Farhan Bin Shafique — Final Year Computing Systems, Ulster University London  
+**Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London  
 **Licence:** MIT
 
 ---
@@ -139,11 +139,11 @@ Sub-1.0 cases result from the word `"account"` being redacted alongside the acco
 | False positive rate | — | 0.0% (0/60) | **0.0% (0/60)** |
 | Mean latency | — | 229.9ms | **5.8ms** |
 | Median latency | — | 223.1ms | **5.3ms** |
-| PII redaction | ✅ | ❌ | ✅ |
-| Injection defence | ❌ | ✅ | ✅ |
-| Output validation | ❌ | ❌ | ✅ |
-| Fintech-specific entities | ❌ | ❌ | ✅ |
-| Response re-mapping | ❌ | ❌ | ✅ |
+| PII redaction | Yes | No | Yes |
+| Injection defence | No | Yes | Yes |
+| Output validation | No | No | Yes |
+| Fintech-specific entities | No | No | Yes |
+| Response re-mapping | No | No | Yes |
 
 Our system matches or exceeds both baselines on every measurable metric, while being approximately **40× faster** than LLM Guard.
 
@@ -153,15 +153,15 @@ Our system matches or exceeds both baselines on every measurable metric, while b
 
 | Component | Status |
 |---|---|
-| Layer 1 — Input sanitiser | ✅ Complete |
-| Layer 2 — Structural separator | ✅ Complete |
-| Layer 3 — PII redactor | ✅ Complete |
-| Layer 4 — Output validator | ✅ Complete |
-| Synthetic attack corpus (25 cases) | ✅ Complete |
-| Extended corpus (107 cases, 8 vectors) | ✅ Complete |
-| Baseline comparison (Presidio, LLM Guard) | ✅ Complete |
-| ROUGE semantic preservation evaluation | ✅ Complete |
-| GSAM 2026 paper submission | 🔄 In progress |
+| Layer 1 — Input sanitiser | Complete |
+| Layer 2 — Structural separator | Complete |
+| Layer 3 — PII redactor | Complete |
+| Layer 4 — Output validator | Complete |
+| Synthetic attack corpus (25 cases) | Complete |
+| Extended corpus (107 cases, 8 vectors) | Complete |
+| Baseline comparison (Presidio, LLM Guard) | Complete |
+| ROUGE semantic preservation evaluation | Complete |
+| GSAM 2026 paper submission | In progress |
 
 ---
 
@@ -180,7 +180,7 @@ fintech_llm_guard/
 │   ├── test_sanitiser.py
 │   ├── test_separator.py
 │   └── baselines/
-│       ├── README.md         # ⚠️ Run each script in a separate terminal
+│       ├── README.md         # Run each script in a separate terminal
 │       ├── run_presidio_only.py
 │       ├── run_llmguard_only.py
 │       └── run_ours_only.py
