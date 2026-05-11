@@ -8,4 +8,4 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 evaluation/results/*.csv
-!evaluation/results/.gitkeep
+!evaluation/results/.gitkeep.cache/
