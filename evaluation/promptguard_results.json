@@ -1,0 +1,16 @@
+{
+  "model": "deepset/deberta-v3-base-injection",
+  "external": {
+    "dataset": "deepset/prompt-injections",
+    "total": 116,
+    "TP": 59,
+    "FP": 0,
+    "TN": 56,
+    "FN": 1,
+    "precision_pct": 100.0,
+    "recall_pct": 98.33,
+    "f1_pct": 99.16,
+    "fpr_pct": 0.0,
+    "mean_latency_ms": 318.73
+  }
+}

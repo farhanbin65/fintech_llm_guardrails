@@ -66,6 +66,7 @@ _FALSE_CONTEXT = [
     r"as\s+per\s+the\s+admin\s+session",
     r"(support\s+agent|developer)\s+(disabled|removed|turned\s+off)\s+(content|safety|restriction)",
     r"continue\s+the\s+(data\s+export|transfer|operation)\s+you\s+started",
+    
     r"you\s+already\s+confirmed\s+it\s+was\s+safe",
     r"(step\s+two|phase\s+two|next\s+step)\s*:.{0,60}(output|reveal|send|export)",
     r"\$[A-Z_]{3,}\s*(variable|var)?\s*(that\s+was\s+injected|from\s+session|at\s+session\s+start)",
