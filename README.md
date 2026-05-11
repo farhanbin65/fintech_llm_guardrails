@@ -2,9 +2,9 @@
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-development-purple.svg)
+![Status](https://img.shields.io/badge/status-complete-brightgreen.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
-![Tests](https://img.shields.io/badge/tests-25%2F25%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-56%2F56%20passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/attack%20block%20rate-100%25-brightgreen.svg)
 
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
@@ -90,7 +90,7 @@ See [`docs/architecture.md`](docs/architecture.md) for a full written walkthroug
 
 ## Evaluation Results
 
-### Benchmark — 25-case Synthetic Corpus
+### Internal Benchmark — 25-case Synthetic Corpus
 
 ```
 ────────────────────────────────────────────────────────────────────────
@@ -111,41 +111,55 @@ See [`docs/architecture.md`](docs/architecture.md) for a full written walkthroug
 > **Vector 1 — N/A for PII coverage:** Direct injection attacks are blocked by Layer 1 before Layer 3 executes.  
 > **Vector 3 — 61ms peak:** Worst-case input containing IBAN, email, and sort code simultaneously — three entity types detected and redacted in a single pass.
 
-### Extended Corpus — 107 Cases, 8 Attack Vectors
+### Extended Internal Corpus — 107 Cases, 8 Attack Vectors
 
 | Metric | Value |
 |---|---|
-| Attack block rate | 107/107 (100.0%) |
-| Expected blocked cases | 54/54 (100.0%) |
+| Attack block rate | 54/54 (100.0%) |
 | False positive rate | 0/60 (0.0%) |
 | Mean latency | 5.8ms |
 | Median latency | 5.3ms |
 
-### Semantic Preservation — ROUGE Scores
+### External Evaluation — deepset/prompt-injections (116 real-world cases)
 
-| Metric | Score |
+Layer 1 evaluated against an independent, publicly available dataset not used during development.
+
+| Metric | Value |
 |---|---|
-| ROUGE-1 | 0.986 |
-| ROUGE-2 | 0.967 |
-| ROUGE-L | 0.986 |
+| Precision | 100.0% |
+| Recall | 18.3% (11/60 injections detected) |
+| False positive rate | 0.0% (0/56 benign cases misclassified) |
+| Mean latency | 0.51ms |
 
-Sub-1.0 cases result from the word `"account"` being redacted alongside the account number token. This is a cosmetic re-mapping artefact, not a semantic failure — the financial entity is correctly restored.
+> **Note on recall:** Layer 1 is precision-optimised for fintech deployment. The 0% FPR constraint — never blocking a legitimate banking query — is the primary design requirement. The recall gap reflects generic roleplay injections ("act as an interviewer") that fall outside the fintech-specific threat model. Fintech-targeted attacks (account takeover, data exfiltration, instruction override) are fully covered by the internal corpus.
 
 ### Baseline Comparison
 
-| Metric | Presidio | LLM Guard | **Ours** |
-|---|---|---|---|
-| Attack block rate | N/A (PII only) | 68.5% (37/54) | **100.0% (54/54)** |
-| False positive rate | — | 0.0% (0/60) | **0.0% (0/60)** |
-| Mean latency | — | 229.9ms | **5.8ms** |
-| Median latency | — | 223.1ms | **5.3ms** |
-| PII redaction | Yes | No | Yes |
-| Injection defence | No | Yes | Yes |
-| Output validation | No | No | Yes |
-| Fintech-specific entities | No | No | Yes |
-| Response re-mapping | No | No | Yes |
+| Metric | Presidio | LLM Guard | deepset DeBERTa | **Ours** |
+|---|---|---|---|---|
+| Internal block rate | N/A | 68.5% (37/54) | — | **100.0% (54/54)** |
+| External recall | — | — | **98.3% (59/60)** | 18.3% (11/60) |
+| Precision | — | — | 100.0% | **100.0%** |
+| False positive rate | — | 0.0% | 0.0% | **0.0%** |
+| Mean latency | — | 229.9ms | 318.7ms | **5.8ms** |
+| PII redaction | [x] | [ ] | [ ] | [x] |
+| Injection defence | [ ] | [x] | [x] | [x] |
+| Output validation | [ ] | [ ] | [ ] | [x] |
+| Fintech-specific entities | [ ] | [ ] | [ ] | [x] |
+| Response re-mapping | [ ] | [ ] | [ ] | [x] |
 
-Our system matches or exceeds both baselines on every measurable metric, while being approximately **40× faster** than LLM Guard.
+Our system is **40× faster** than LLM Guard and **55× faster** than deepset DeBERTa, while being the only solution combining PII redaction, injection defence, output validation, and fintech-specific entity recognition in a single pipeline.
+
+### Semantic Preservation
+
+| Metric | Score | Notes |
+|---|---|---|
+| ROUGE-1 | 0.986 | High n-gram overlap after PII re-mapping |
+| ROUGE-2 | 0.967 | |
+| ROUGE-L | 0.986 | |
+| BERTScore F1 | 0.772 | Semantic cost of token substitution |
+
+> ROUGE measures n-gram overlap; BERTScore measures contextual semantic similarity. The BERTScore of 0.772 reflects the inherent semantic cost of replacing PII tokens with placeholders — cases with no PII score 1.0, cases with 3+ entities score ~0.63. This is an expected and acceptable trade-off for privacy protection.
 
 ---
 
@@ -153,40 +167,53 @@ Our system matches or exceeds both baselines on every measurable metric, while b
 
 | Component | Status |
 |---|---|
-| Layer 1 — Input sanitiser | Complete |
-| Layer 2 — Structural separator | Complete |
-| Layer 3 — PII redactor | Complete |
-| Layer 4 — Output validator | Complete |
-| Synthetic attack corpus (25 cases) | Complete |
-| Extended corpus (107 cases, 8 vectors) | Complete |
-| Baseline comparison (Presidio, LLM Guard) | Complete |
-| ROUGE semantic preservation evaluation | Complete |
-| GSAM 2026 paper submission | In progress |
+| Layer 1 — Input sanitiser | [x] Complete |
+| Layer 2 — Structural separator | [x] Complete |
+| Layer 3 — PII redactor | [x] Complete |
+| Layer 4 — Output validator | [x] Complete |
+| Synthetic attack corpus (25 cases) | [x] Complete |
+| Extended corpus (107 cases, 8 vectors) | [x] Complete |
+| External evaluation (deepset, 116 cases) | [x] Complete |
+| Baseline comparison (Presidio, LLM Guard, deepset DeBERTa) | [x] Complete |
+| ROUGE semantic preservation evaluation | [x] Complete |
+| BERTScore semantic evaluation | [x] Complete |
+| GSAM 2026 paper submission | [-] In progress |
 
 ---
 
 ## Repository Structure
 
 ```
-fintech_llm_guard/
+fintech_llm_guardrails/
 ├── middleware/
 │   ├── __init__.py
-│   ├── sanitiser.py          # Layer 1 — injection pattern detection
-│   ├── separator.py          # Layer 2 — structural context wrapping
-│   ├── redactor.py           # Layer 3 — PII detection and pseudonymisation
-│   └── validator.py          # Layer 4 — output PII scanning
+│   ├── sanitiser.py           # Layer 1 — injection pattern detection
+│   ├── separator.py           # Layer 2 — structural context wrapping
+│   ├── redactor.py            # Layer 3 — PII detection and pseudonymisation
+│   ├── output_validator.py    # Layer 4 — output PII scanning
+│   ├── pipeline.py            # End-to-end pipeline orchestration
+│   └── llm_client.py          # Provider-agnostic LLM client
 ├── tests/
-│   ├── conftest.py
+│   ├── conftest.py            # MockRedactor and shared fixtures
 │   ├── test_sanitiser.py
 │   ├── test_separator.py
+│   ├── test_redactor.py
+│   ├── test_output_validator.py
+│   ├── test_pipeline.py
 │   └── baselines/
-│       ├── README.md         # Run each script in a separate terminal
+│       ├── README.md          # WARNING: Run each script in a separate terminal
 │       ├── run_presidio_only.py
 │       ├── run_llmguard_only.py
-│       └── run_ours_only.py
+│       ├── run_ours_only.py
+│       └── run_deepset_deberta_only.py
 ├── evaluation/
-│   ├── run_benchmark.py      # Main benchmark harness
-│   ├── run_rouge.py          # ROUGE semantic preservation
+│   ├── run_benchmark.py       # Internal benchmark harness
+│   ├── run_external_eval.py   # External evaluation (deepset dataset)
+│   ├── run_rouge.py           # ROUGE semantic preservation
+│   ├── run_bertscore.py       # BERTScore semantic evaluation
+│   ├── external_eval_results.json
+│   ├── promptguard_results.json
+│   ├── bertscore_results.json
 │   ├── rouge_results.json
 │   ├── ours_results.json
 │   ├── baseline_results.json
@@ -200,6 +227,7 @@ fintech_llm_guard/
 │       ├── system-architecture.mmd
 │       ├── defence-stack.svg
 │       └── threat-model.svg
+├── pytest.ini
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -211,8 +239,8 @@ fintech_llm_guard/
 ## Quick Start
 
 ```bash
-git clone https://github.com/farhanbin65/fintech_llm_guard.git
-cd fintech_llm_guard
+git clone https://github.com/farhanbin65/fintech_llm_guardrails.git
+cd fintech_llm_guardrails
 pip install -r requirements.txt
 cp .env.example .env
 # Add your LLM API key to .env
@@ -224,10 +252,16 @@ cp .env.example .env
 pytest tests/ -v
 ```
 
-**Run the benchmark:**
+**Run the internal benchmark:**
 
 ```bash
 python evaluation/run_benchmark.py
+```
+
+**Run external evaluation:**
+
+```bash
+python evaluation/run_external_eval.py
 ```
 
 **Run ROUGE evaluation:**
@@ -236,16 +270,25 @@ python evaluation/run_benchmark.py
 python evaluation/run_rouge.py
 ```
 
-**Run baselines** (each in a **separate terminal** — they load ~700MB models and will OOM-kill if combined):
+**Run BERTScore evaluation:**
 
 ```bash
-# Terminal 1
+python evaluation/run_bertscore.py
+```
+
+**Run baselines** (each in a **separate terminal** — they load large models and will OOM-kill if combined):
+
+```bash
+# Terminal 1 — Presidio (PII baseline)
 python tests/baselines/run_presidio_only.py
 
-# Terminal 2
+# Terminal 2 — LLM Guard (DeBERTa-v3, injection baseline)
 python tests/baselines/run_llmguard_only.py
 
-# Terminal 3
+# Terminal 3 — deepset DeBERTa (injection baseline)
+python tests/baselines/run_deepset_deberta_only.py
+
+# Terminal 4 — Ours
 python tests/baselines/run_ours_only.py
 ```
 
@@ -273,7 +316,7 @@ This project is a proof-of-concept research prototype developed as part of a GSA
 > **"Privacy by Design in LLM-Powered Fintech: A Middleware Approach to PII Redaction and Prompt Injection Defence"**  
 > GSAM 2026 — Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026
 
-The work addresses a gap in existing literature: while PII redaction tools (Presidio) and injection detection models (LLM Guard) exist independently, no prior work proposes a unified, deployable pipeline combining both concerns in a fintech-specific context.
+The work addresses a gap in existing literature: while PII redaction tools (Presidio) and injection detection models (LLM Guard, deepset DeBERTa) exist independently, no prior work proposes a unified, deployable pipeline combining both concerns in a fintech-specific context with output validation and response re-mapping.
 
 **Regulatory alignment:** GDPR Article 25 (data protection by design), UK FCA AI governance guidelines, PSD2 open banking data obligations.
 
