@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
-![Tests](https://img.shields.io/badge/tests-56%2F56%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-63%2F63%20passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/attack%20block%20rate-100%25-brightgreen.svg)
 
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
@@ -66,6 +66,19 @@ User Query + Transactions
                   Safe Response
 ```
 
+### Obfuscation Resistance
+
+Layer 1 applies a multi-stage normalisation pipeline before pattern matching, defending against adaptive evasion techniques:
+
+| Technique | Example | Defence |
+|---|---|---|
+| Homoglyphs | `іgnore` (Cyrillic і) | Unicode substitution map |
+| Spaced characters | `i g n o r e` | Single-char space collapse |
+| Leetspeak | `19n0r3` | Character substitution map |
+| Morse code | `.. --. -. --- .-. .` | Morse decoder |
+| Zero-width chars | `​ignore` (invisible prefix) | Zero-width stripping |
+| Base64 encoding | `aWdub3Jl...` | Base64 decode + scan |
+
 ---
 
 ## Architecture
@@ -108,8 +121,8 @@ See [`docs/architecture.md`](docs/architecture.md) for a full written walkthroug
 ────────────────────────────────────────────────────────────────────────
 ```
 
-> **Vector 1 — N/A for PII coverage:** Direct injection attacks are blocked by Layer 1 before Layer 3 executes.  
-> **Vector 3 — 61ms peak:** Worst-case input containing IBAN, email, and sort code simultaneously — three entity types detected and redacted in a single pass.
+> **Vector 1 — N/A for PII coverage:** Direct injection attacks are blocked by Layer 1 before Layer 3 executes.
+> **Vector 3 — 61ms peak:** Worst-case input containing IBAN, email, and sort code simultaneously.
 
 ### Extended Internal Corpus — 107 Cases, 8 Attack Vectors
 
@@ -129,7 +142,7 @@ Layer 1 evaluated against an independent, publicly available dataset not used du
 | Precision | 100.0% |
 | Recall | 18.3% (11/60 injections detected) |
 | False positive rate | 0.0% (0/56 benign cases misclassified) |
-| Mean latency | 0.51ms |
+| Mean latency | 0.09ms |
 
 > **Note on recall:** Layer 1 is precision-optimised for fintech deployment. The 0% FPR constraint — never blocking a legitimate banking query — is the primary design requirement. The recall gap reflects generic roleplay injections ("act as an interviewer") that fall outside the fintech-specific threat model. Fintech-targeted attacks (account takeover, data exfiltration, instruction override) are fully covered by the internal corpus.
 
@@ -148,7 +161,7 @@ Layer 1 evaluated against an independent, publicly available dataset not used du
 | Fintech-specific entities | No | No | No | No | Yes |
 | Response re-mapping | No | No | No | No | Yes |
 
-Our system is **40× faster** than LLM Guard and **55× faster** than deepset DeBERTa, while being the only solution combining PII redaction, injection defence, output validation, and fintech-specific entity recognition in a single pipeline.
+Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% of legitimate queries as attacks, making it unsuitable for production fintech. Our system is also **40x faster** than LLM Guard and **55x faster** than deepset DeBERTa, while being the only solution combining PII redaction, injection defence, output validation, and fintech-specific entity recognition in a single pipeline.
 
 ### Semantic Preservation
 
@@ -171,10 +184,11 @@ Our system is **40× faster** than LLM Guard and **55× faster** than deepset De
 | Layer 2 — Structural separator | Complete |
 | Layer 3 — PII redactor | Complete |
 | Layer 4 — Output validator | Complete |
+| Obfuscation-resistant normalisation | Complete |
 | Synthetic attack corpus (25 cases) | Complete |
 | Extended corpus (107 cases, 8 vectors) | Complete |
 | External evaluation (deepset, 116 cases) | Complete |
-| Baseline comparison (Presidio, LLM Guard, deepset DeBERTa) | Complete |
+| Baseline comparison (Presidio, LLM Guard, deepset DeBERTa, PromptGuard 86M) | Complete |
 | ROUGE semantic preservation evaluation | Complete |
 | BERTScore semantic evaluation | Complete |
 | GSAM 2026 paper submission | In progress |
@@ -187,7 +201,7 @@ Our system is **40× faster** than LLM Guard and **55× faster** than deepset De
 fintech_llm_guardrails/
 ├── middleware/
 │   ├── __init__.py
-│   ├── sanitiser.py           # Layer 1 — injection pattern detection
+│   ├── sanitiser.py           # Layer 1 — injection pattern detection + normalisation
 │   ├── separator.py           # Layer 2 — structural context wrapping
 │   ├── redactor.py            # Layer 3 — PII detection and pseudonymisation
 │   ├── output_validator.py    # Layer 4 — output PII scanning
@@ -200,12 +214,14 @@ fintech_llm_guardrails/
 │   ├── test_redactor.py
 │   ├── test_output_validator.py
 │   ├── test_pipeline.py
+│   ├── test_obfuscation.py    # Homoglyph, leetspeak, morse, spacing tests
 │   └── baselines/
 │       ├── README.md          # WARNING: Run each script in a separate terminal
 │       ├── run_presidio_only.py
 │       ├── run_llmguard_only.py
 │       ├── run_ours_only.py
-│       └── run_deepset_deberta_only.py
+│       ├── run_deepset_deberta_only.py
+│       └── run_promptguard_only.py
 ├── evaluation/
 │   ├── run_benchmark.py       # Internal benchmark harness
 │   ├── run_external_eval.py   # External evaluation (deepset dataset)
@@ -288,7 +304,10 @@ python tests/baselines/run_llmguard_only.py
 # Terminal 3 — deepset DeBERTa (injection baseline)
 python tests/baselines/run_deepset_deberta_only.py
 
-# Terminal 4 — Ours
+# Terminal 4 — PromptGuard 86M (Meta, requires HF token + licence acceptance)
+python tests/baselines/run_promptguard_only.py
+
+# Terminal 5 — Ours
 python tests/baselines/run_ours_only.py
 ```
 
@@ -313,7 +332,7 @@ The middleware is **provider-agnostic** — it works with any OpenAI-compatible 
 
 This project is a proof-of-concept research prototype developed as part of a GSAM 2026 paper submission:
 
-> **"Privacy by Design in LLM-Powered Fintech: A Middleware Approach to PII Redaction and Prompt Injection Defence"**  
+> **"Privacy by Design in LLM-Powered Fintech: A Middleware Approach to PII Redaction and Prompt Injection Defence"**
 > GSAM 2026 — Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026
 
 The work addresses a gap in existing literature: while PII redaction tools (Presidio) and injection detection models (LLM Guard, deepset DeBERTa) exist independently, no prior work proposes a unified, deployable pipeline combining both concerns in a fintech-specific context with output validation and response re-mapping.
@@ -325,4 +344,3 @@ The work addresses a gap in existing literature: while PII redaction tools (Pres
 ## Licence
 
 MIT — see [LICENSE](LICENSE) for details.
-
