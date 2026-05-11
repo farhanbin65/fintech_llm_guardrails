@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-complete-brightgreen.svg)
+![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
 ![Tests](https://img.shields.io/badge/tests-56%2F56%20passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/attack%20block%20rate-100%25-brightgreen.svg)
@@ -135,18 +135,18 @@ Layer 1 evaluated against an independent, publicly available dataset not used du
 
 ### Baseline Comparison
 
-| Metric | Presidio | LLM Guard | deepset DeBERTa | **Ours** |
-|---|---|---|---|---|
-| Internal block rate | N/A | 68.5% (37/54) | — | **100.0% (54/54)** |
-| External recall | — | — | **98.3% (59/60)** | 18.3% (11/60) |
-| Precision | — | — | 100.0% | **100.0%** |
-| False positive rate | — | 0.0% | 0.0% | **0.0%** |
-| Mean latency | — | 229.9ms | 318.7ms | **5.8ms** |
-| PII redaction | [x] | [ ] | [ ] | [x] |
-| Injection defence | [ ] | [x] | [x] | [x] |
-| Output validation | [ ] | [ ] | [ ] | [x] |
-| Fintech-specific entities | [ ] | [ ] | [ ] | [x] |
-| Response re-mapping | [ ] | [ ] | [ ] | [x] |
+| Metric | Presidio | LLM Guard | deepset DeBERTa | PromptGuard 86M | **Ours** |
+|---|---|---|---|---|---|
+| Internal block rate | N/A | 68.5% (37/54) | — | — | **100.0% (54/54)** |
+| External recall | — | — | **98.3% (59/60)** | 68.3% (41/60) | 18.3% (11/60) |
+| Precision | — | — | 100.0% | 47.7% | **100.0%** |
+| False positive rate | — | 0.0% | 0.0% | 80.4% | **0.0%** |
+| Mean latency | — | 229.9ms | 318.7ms | 291.1ms | **5.8ms** |
+| PII redaction | Yes | No | No | No | Yes |
+| Injection defence | No | Yes | Yes | Yes | Yes |
+| Output validation | No | No | No | No | Yes |
+| Fintech-specific entities | No | No | No | No | Yes |
+| Response re-mapping | No | No | No | No | Yes |
 
 Our system is **40× faster** than LLM Guard and **55× faster** than deepset DeBERTa, while being the only solution combining PII redaction, injection defence, output validation, and fintech-specific entity recognition in a single pipeline.
 
@@ -167,17 +167,17 @@ Our system is **40× faster** than LLM Guard and **55× faster** than deepset De
 
 | Component | Status |
 |---|---|
-| Layer 1 — Input sanitiser | [x] Complete |
-| Layer 2 — Structural separator | [x] Complete |
-| Layer 3 — PII redactor | [x] Complete |
-| Layer 4 — Output validator | [x] Complete |
-| Synthetic attack corpus (25 cases) | [x] Complete |
-| Extended corpus (107 cases, 8 vectors) | [x] Complete |
-| External evaluation (deepset, 116 cases) | [x] Complete |
-| Baseline comparison (Presidio, LLM Guard, deepset DeBERTa) | [x] Complete |
-| ROUGE semantic preservation evaluation | [x] Complete |
-| BERTScore semantic evaluation | [x] Complete |
-| GSAM 2026 paper submission | [-] In progress |
+| Layer 1 — Input sanitiser | Complete |
+| Layer 2 — Structural separator | Complete |
+| Layer 3 — PII redactor | Complete |
+| Layer 4 — Output validator | Complete |
+| Synthetic attack corpus (25 cases) | Complete |
+| Extended corpus (107 cases, 8 vectors) | Complete |
+| External evaluation (deepset, 116 cases) | Complete |
+| Baseline comparison (Presidio, LLM Guard, deepset DeBERTa) | Complete |
+| ROUGE semantic preservation evaluation | Complete |
+| BERTScore semantic evaluation | Complete |
+| GSAM 2026 paper submission | In progress |
 
 ---
 
