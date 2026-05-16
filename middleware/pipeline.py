@@ -28,6 +28,7 @@ from .output_validator import OutputValidator, ValidationResult
 from .provenance import ProvenanceTracker, ProvenanceReport, ProvenanceSource
 from .risk_scorer import RiskScorer, RiskLevel, RiskScore
 from .allowlist import AllowlistEngine, ActionProposal, ActionResult
+from .canary import CanaryManager, CanarySession, CanaryCheckResult
 # ── Audit log entry ───────────────────────────────────────────────────────────
 
 @dataclass
@@ -46,6 +47,8 @@ class AuditEntry:
     risk_signals: List[str] = field(default_factory=list)
     provenance_summary: Optional[str] = None          # ← ADD
     action_result: Optional[str] = None   # ← ADD — allowlist audit note
+    canary_triggered: bool = False          # ← ADD
+    canary_audit_note: Optional[str] = None  # ← ADD
     indirect_injection_detected: bool = False     
 
 
@@ -75,7 +78,8 @@ class GuardrailPipeline:
         validator:        Optional[OutputValidator]       = None,
         risk_scorer:      Optional[RiskScorer]           = None,
         provenance:       Optional[ProvenanceTracker]    = None,
-        allowlist: Optional[AllowlistEngine] = None,   
+        allowlist: Optional[AllowlistEngine] = None,  
+        canary_manager: Optional[CanaryManager] = None, 
     ):
         self.llm          = llm_client
         self.sanitiser    = sanitiser   or InputSanitiser()
@@ -85,6 +89,7 @@ class GuardrailPipeline:
         self.risk_scorer  = risk_scorer or RiskScorer()
         self.provenance   = provenance  or ProvenanceTracker()
         self.allowlist = allowlist or AllowlistEngine()
+        self.canary_manager = canary_manager or CanaryManager() 
 
     def process(
         self,
@@ -135,7 +140,11 @@ class GuardrailPipeline:
                 source=source,
                 session_id=session_id,
             )
-            if risk.level == RiskLevel.HIGH:
+            should_block_for_risk = risk.level == RiskLevel.HIGH and any(
+                signal.startswith("injection:") or signal.startswith("obfuscation:")
+                for signal in risk.triggered_signals
+            )
+            if should_block_for_risk:
                 return self._blocked(
                     start=start,
                     layer="Layer 0b — Risk scorer",
@@ -160,6 +169,13 @@ class GuardrailPipeline:
             # ── Layer 2: Structural separation ────────────────────────────
             messages = self.separator.build_messages(user_message, transactions)
 
+            # ── Canary injection ──────────────────────────────────────────────────
+            # Plant canary tokens in system prompt (index 0) for this session
+            canary_session = self.canary_manager.create_session(session_id=session_id)
+            messages[0]["content"] = canary_session.inject_into_prompt(
+                messages[0]["content"]
+            )
+
             # ── Layer 3: PII redaction ────────────────────────────────────
             # Redact the user content block (index 1) only —
             # the system prompt is trusted and should not be modified.
@@ -169,6 +185,19 @@ class GuardrailPipeline:
 
             # ── LLM API call ──────────────────────────────────────────────
             raw_response = self.llm.chat(messages)
+
+            # ── Canary check ──────────────────────────────────────────────────────
+            canary_result = canary_session.check_response(raw_response)
+            if canary_result.triggered:
+                return self._blocked(
+                    start=start,
+                    layer="Canary — Context leakage detector",
+                    reason=canary_result.audit_note,
+                    sanitisation_flagged=False,
+                    redaction_result=redaction,
+                    canary_triggered=True,
+                    canary_audit_note=canary_result.audit_note,
+                )
 
             # ── Layer 4: Output validation ────────────────────────────────
             validation = self.validator.validate(
@@ -210,6 +239,8 @@ class GuardrailPipeline:
                     risk_score=risk.total,
                     risk_level=risk.level.value,
                     risk_signals=list(risk.triggered_signals),
+                    canary_triggered=(canary_result.triggered if 'canary_result' in locals() else False),
+                    canary_audit_note=(canary_result.audit_note if 'canary_result' in locals() else None),
                     provenance_summary=(provenance_report.summary if 'provenance_report' in locals() else None),
                     indirect_injection_detected=(provenance_report.indirect_injection_detected
                                                  if 'provenance_report' in locals() else False),
@@ -264,6 +295,8 @@ class GuardrailPipeline:
         validation_result: Optional[ValidationResult] = None,
         risk: Optional["RiskScore"] = None, 
         provenance_report: Optional[ProvenanceReport] = None,
+        canary_triggered: bool = False,
+        canary_audit_note: Optional[str] = None,
     ) -> PipelineResult:
         latency_ms = (time.monotonic() - start) * 1000
         return PipelineResult(
@@ -286,6 +319,8 @@ class GuardrailPipeline:
                 risk_level=risk.level.value if risk else None,
                 risk_signals=list(risk.triggered_signals) if risk else [],
                 provenance_summary=provenance_report.summary if provenance_report else None,
+                canary_triggered=canary_triggered,
+                canary_audit_note=canary_audit_note,
                 indirect_injection_detected=(provenance_report.indirect_injection_detected
                                              if provenance_report else False),
                 
