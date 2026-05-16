@@ -26,7 +26,7 @@ from .sanitiser import InputSanitiser, SanitisationResult
 from .separator import StructuralSeparator
 from .redactor import PIIRedactor, RedactionResult
 from .output_validator import OutputValidator, ValidationResult
-
+from .risk_scorer import RiskScorer, RiskLevel, RiskScore
 
 # ── Audit log entry ───────────────────────────────────────────────────────────
 
@@ -41,6 +41,9 @@ class AuditEntry:
     latency_ms: float
     sanitisation_flagged: bool
     output_safe: bool
+    risk_score: Optional[float] = None
+    risk_level: Optional[str] = None
+    risk_signals: List[str] = field(default_factory=list)
 
 
 # ── Pipeline result ───────────────────────────────────────────────────────────
@@ -67,17 +70,21 @@ class GuardrailPipeline:
         separator: Optional[StructuralSeparator] = None,
         redactor: Optional[PIIRedactor] = None,
         validator: Optional[OutputValidator] = None,
+        risk_scorer: Optional[RiskScorer] = None,
     ):
         self.llm = llm_client
         self.sanitiser = sanitiser or InputSanitiser()
         self.separator = separator or StructuralSeparator()
         self.redactor = redactor or PIIRedactor()
         self.validator = validator or OutputValidator()
+        self.risk_scorer = risk_scorer or RiskScorer()
 
     def process(
         self,
         user_message: str,
         transactions: Optional[List[Dict]] = None,
+        source: str = "user",               
+        session_id: Optional[str] = None,
     ) -> PipelineResult:
         """
         Run user_message and transactions through the full four-layer pipeline.
@@ -92,6 +99,7 @@ class GuardrailPipeline:
         """
         start = time.monotonic()
         transactions = transactions or []
+        risk = self.risk_scorer.score(user_message, source=source, session_id=session_id)
 
         try:
             # ── Layer 1: Input sanitisation ───────────────────────────────
@@ -102,6 +110,7 @@ class GuardrailPipeline:
                     layer="Layer 1 — Input sanitiser",
                     reason=f"Suspicious patterns detected: {sanitisation.matched_patterns}",
                     sanitisation_flagged=True,
+                    risk=risk,
                 )
 
             # ── Layer 2: Structural separation ────────────────────────────
@@ -130,6 +139,7 @@ class GuardrailPipeline:
                     sanitisation_flagged=False,
                     redaction_result=redaction,
                     validation_result=validation,
+                    risk=risk,
                 )
 
             # ── Layer 3: Response re-mapping ──────────────────────────────
@@ -153,6 +163,9 @@ class GuardrailPipeline:
                     latency_ms=round(latency_ms, 2),
                     sanitisation_flagged=False,
                     output_safe=True,
+                    risk_score=risk.total,
+                    risk_level=risk.level.value,
+                    risk_signals=list(risk.triggered_signals),
                 ),
             )
 
@@ -163,7 +176,9 @@ class GuardrailPipeline:
                 layer="Pipeline",
                 reason=f"Unhandled exception: {str(e)}",
                 sanitisation_flagged=False,
+                risk=risk,
             )
+    
 
     def _blocked(
         self,
@@ -173,6 +188,7 @@ class GuardrailPipeline:
         sanitisation_flagged: bool,
         redaction_result: Optional[RedactionResult] = None,
         validation_result: Optional[ValidationResult] = None,
+        risk: Optional["RiskScore"] = None, 
     ) -> PipelineResult:
         latency_ms = (time.monotonic() - start) * 1000
         return PipelineResult(
@@ -191,5 +207,8 @@ class GuardrailPipeline:
                 latency_ms=round(latency_ms, 2),
                 sanitisation_flagged=sanitisation_flagged,
                 output_safe=False,
+                risk_score=risk.total if risk else None,           # ← SAFE
+                risk_level=risk.level.value if risk else None,     # ← SAFE
+                risk_signals=list(risk.triggered_signals) if risk else [],  # ← SAFE
             ),
         )
