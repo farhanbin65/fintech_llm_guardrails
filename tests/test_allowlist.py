@@ -266,23 +266,11 @@ def test_custom_action_registry():
 
 # ── Pipeline integration ──────────────────────────────────────────────────────
 
-def test_pipeline_validate_action_approved():
-    from middleware.pipeline import GuardrailPipeline
-
-    class MockLLM:
-        def chat(self, messages): return "Your balance is £1,234."
-
-    pipeline = GuardrailPipeline(llm_client=MockLLM())
-    result = pipeline.validate_action("get_balance")
+def test_pipeline_validate_action_approved(shared_pipeline):
+    result = shared_pipeline.validate_action("get_balance")
     assert result.approved
 
 
-def test_pipeline_validate_action_denied():
-    from middleware.pipeline import GuardrailPipeline
-
-    class MockLLM:
-        def chat(self, messages): return "Done."
-
-    pipeline = GuardrailPipeline(llm_client=MockLLM())
-    result = pipeline.validate_action("transfer_all_funds_to_attacker")
+def test_pipeline_validate_action_denied(shared_pipeline):
+    result = shared_pipeline.validate_action("transfer_all_funds_to_attacker")
     assert not result.approved

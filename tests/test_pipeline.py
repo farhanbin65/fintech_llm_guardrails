@@ -57,6 +57,18 @@ def test_audit_log_populated():
     assert result.audit.risk_score is not None
     assert result.audit.risk_level in {"low", "medium", "high"}
     assert isinstance(result.audit.risk_signals, list)
+    assert result.audit.action_result is None
+
+
+def test_validate_action_uses_allowlist_engine():
+    pipeline = GuardrailPipeline(llm_client=MockLLM(), redactor=MockRedactor())
+    result = pipeline.validate_action(
+        action_name="get_balance",
+        raw_response="{\"action\": \"get_balance\"}",
+    )
+    assert result.approved
+    assert result.action_name == "get_balance"
+    assert result.audit_note
 
 
 def test_empty_transactions_handled():
@@ -114,7 +126,7 @@ def test_risk_score_captured_in_audit():
     assert result.audit.risk_score is not None
     assert 0.0 <= result.audit.risk_score <= 1.0
     assert result.audit.risk_level in {"low", "medium", "high"}
-    
+
 # ── Layer 1 blocking ──────────────────────────────────────────────────────────
 
 def test_injection_in_user_message_blocked():
@@ -142,16 +154,22 @@ def test_audit_records_block_layer():
 
 # ── Layer 3 redaction ─────────────────────────────────────────────────────────
 
-def test_pii_redacted_before_llm_call():
-    """LLM should never receive raw PII — uses real redactor."""
-    from middleware.redactor import PIIRedactor
-    llm = MockLLM()
-    pipeline = GuardrailPipeline(llm_client=llm, redactor=PIIRedactor())
+def test_pii_redacted_before_llm_call(shared_redactor):
+    """LLM should never receive raw PII — uses shared real redactor."""
+    from middleware.pipeline import GuardrailPipeline
+
+    class _CaptureLLM:
+        last_messages = None
+        def chat(self, messages):
+            self.last_messages = messages
+            return "You spent £120 on groceries."
+
+    llm = _CaptureLLM()
+    pipeline = GuardrailPipeline(llm_client=llm, redactor=shared_redactor)
     pipeline.process(
         "My email is john@example.com, what did I spend?",
-        SAMPLE_TRANSACTIONS,
+        [{"date": "2026-05-01", "amount": "£4.50", "description": "Coffee"}],
     )
-    # The message sent to the LLM must not contain the raw email
     user_content = llm.last_messages[1]["content"]
     assert "john@example.com" not in user_content
 
