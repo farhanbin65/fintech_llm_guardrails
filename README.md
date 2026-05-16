@@ -26,6 +26,8 @@ Existing tools address one or the other. None address both in a single, deployab
 ---
 
 ## The Solution — Eight-Layer Middleware Pipeline
+
+```text
 User Query + Transactions
 │
 ▼
@@ -35,66 +37,73 @@ User Query + Transactions
 │  external), detects indirect injection in           │
 │  imported transaction data                          │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 0b: Risk Scorer                              │
 │  Continuous risk score r ∈ [0,1] across 5 dims:    │
-│  PII density, injection signals, obfuscation,       │
+│  PII density, injection signals, obfuscation,      │
 │  source trust, session history                      │
-│  LOW → pass | MEDIUM → redact | HIGH → block        │
+│                                                     │
+│  LOW → pass | MEDIUM → redact | HIGH → block       │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 1: Input Sanitiser                           │
 │  Blocks prompt injection patterns                   │
 │  (role overrides, ChatML tokens,                    │
 │  classic injection phrases)                         │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 2: Structural Separator                      │
 │  Wraps financial data in tagged context blocks,     │
 │  escapes angle brackets in user-supplied text       │
 │  + Canary token injection into system prompt        │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 3: PII Redactor                              │
-│  Detects and pseudonymises PII (regex + spaCy NER)  │
+│  Detects and pseudonymises PII                      │
+│  (regex + spaCy NER)                                │
 │  Maintains mapping for response re-mapping          │
 └────────────────────────┬────────────────────────────┘
-│
-▼
-LLM API
-│
-▼
+                         │
+                         ▼
+                    ┌─────────┐
+                    │ LLM API │
+                    └─────────┘
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Canary Check                                       │
 │  Scans response for planted canary tokens —         │
 │  detects prompt extraction and context leakage      │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 4a: Output Validator                         │
 │  Scans LLM response for residual PII leakage,       │
 │  unauthorised function calls, external URLs         │
 └────────────────────────┬────────────────────────────┘
-│
-▼
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────┐
 │  Layer 4b: Action Allowlist                         │
 │  Declarative allowlist — LLM proposes,              │
-│  middleware decides. 8 registered fintech actions   │
-│  across LOW / MEDIUM / HIGH risk tiers              │
+│  middleware decides                                  │
+│                                                     │
+│  8 registered fintech actions across                │
+│  LOW / MEDIUM / HIGH risk tiers                     │
 └────────────────────────┬────────────────────────────┘
-│
-▼
-Safe Response
+                         │
+                         ▼
+                   Safe Response
+```
 
 ### Obfuscation Resistance
 
@@ -177,14 +186,14 @@ Layer 1 evaluated against an independent, publicly available dataset not used du
 | Precision | — | — | 100.0% | 47.7% | **100.0%** |
 | False positive rate | — | 0.0% | 0.0% | 80.4% | **0.0%** |
 | Mean latency | — | 300.3ms | 318.7ms | 291.1ms | **5.8ms** |
-| PII redaction | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Injection defence | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Output validation | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Action allowlisting | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Provenance tracking | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Canary detection | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Fintech-specific entities | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Response re-mapping | ❌ | ❌ | ❌ | ❌ | ✅ |
+| PII redaction | Yes | No | No | No | Yes |
+| Injection defence | No | Yes | Yes | Yes | Yes |
+| Output validation | No | No | No | No | Yes |
+| Action allowlisting | No | No | No | No | Yes |
+| Provenance tracking | No | No | No | No | Yes |
+| Canary detection | No | No | No | No | Yes |
+| Fintech-specific entities | No | No | No | No | Yes |
+| Response re-mapping | No | No | No | No | Yes |
 
 Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% of legitimate financial queries as attacks. Our system is **51× faster than LLM Guard** and **55× faster than deepset DeBERTa**, while being the only solution combining all eight defensive capabilities in a single pipeline.
 
@@ -203,91 +212,22 @@ Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% o
 
 | Component | Status |
 |---|---|
-| Layer 0a — Provenance tracker | ✅ Complete |
-| Layer 0b — Risk scorer | ✅ Complete |
-| Layer 1 — Input sanitiser | ✅ Complete |
-| Layer 2 — Structural separator | ✅ Complete |
-| Layer 3 — PII redactor | ✅ Complete |
-| Layer 4a — Output validator | ✅ Complete |
-| Layer 4b — Action allowlist | ✅ Complete |
-| Canary token system | ✅ Complete |
-| Obfuscation-resistant normalisation | ✅ Complete |
-| Static attack corpus (107 cases, 8 vectors) | ✅ Complete |
-| Adaptive red-team evaluator (377 cases) | ✅ Complete |
-| External evaluation (deepset, 116 cases) | ✅ Complete |
-| Baseline comparison (4 systems) | ✅ Complete |
-| ROUGE semantic preservation evaluation | ✅ Complete |
-| BERTScore semantic evaluation | ✅ Complete |
-| GSAM 2026 paper submission | 🔄 In progress |
-
----
-
-## Repository Structure
-fintech_llm_guard/
-├── middleware/
-│   ├── init.py
-│   ├── sanitiser.py           # Layer 1 — injection pattern detection + normalisation
-│   ├── separator.py           # Layer 2 — structural context wrapping
-│   ├── redactor.py            # Layer 3 — PII detection and pseudonymisation
-│   ├── output_validator.py    # Layer 4a — output PII and function call scanning
-│   ├── pipeline.py            # End-to-end pipeline orchestration
-│   ├── llm_client.py          # Provider-agnostic LLM client
-│   ├── provenance.py          # Layer 0a — context provenance tracking
-│   ├── risk_scorer.py         # Layer 0b — continuous risk scoring
-│   ├── allowlist.py           # Layer 4b — tool/action allowlist engine
-│   └── canary.py              # Canary token injection and detection
-├── tests/
-│   ├── conftest.py            # MockRedactor, shared fixtures, session redactor
-│   ├── test_sanitiser.py
-│   ├── test_separator.py
-│   ├── test_redactor.py
-│   ├── test_output_validator.py
-│   ├── test_pipeline.py
-│   ├── test_obfuscation.py
-│   ├── test_risk_scorer.py    # 19 tests
-│   ├── test_provenance.py     # 18 tests
-│   ├── test_allowlist.py      # 33 tests
-│   ├── test_canary.py         # 25 tests
-│   ├── test_redteam.py        # 27 tests (slow + redteam markers)
-│   └── attacks/
-│       ├── run_corpus.py
-│       ├── vector1_direct.json
-│       ├── vector2_transaction.json
-│       ├── vector3_csv.json
-│       ├── vector4_action.json
-│       ├── vector5_exfiltration.json
-│       ├── vector6_obfuscated.json
-│       ├── vector7_pii_direct.json
-│       └── vector8_context.json
-├── evaluation/
-│   ├── run_redteam.py         # Adaptive red-team evaluator
-│   ├── run_external_eval.py   # External evaluation (deepset dataset)
-│   ├── run_rouge.py           # ROUGE semantic preservation
-│   ├── run_bertscore.py       # BERTScore semantic evaluation
-│   ├── generate_charts.py     # Chart generation
-│   ├── redteam_results.json
-│   ├── external_eval_results.json
-│   ├── promptguard_results.json
-│   ├── bertscore_results.json
-│   ├── rouge_results.json
-│   ├── ours_results.json
-│   ├── baseline_results.json
-│   └── llmguard_results.json
-├── docs/
-│   ├── abstract.md            # GSAM 2026 abstract
-│   ├── introduction.md        # GSAM 2026 introduction
-│   ├── architecture.md
-│   ├── research-notes.md
-│   ├── threat-model.md
-│   └── diagrams/
-│       ├── system-architecture.svg
-│       ├── defence-stack.svg
-│       └── threat-model.svg
-├── pytest.ini
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+| Layer 0a — Provenance tracker | Complete |
+| Layer 0b — Risk scorer | Complete |
+| Layer 1 — Input sanitiser | Complete |
+| Layer 2 — Structural separator | Complete |
+| Layer 3 — PII redactor | Complete |
+| Layer 4a — Output validator | Complete |
+| Layer 4b — Action allowlist | Complete |
+| Canary token system | Complete |
+| Obfuscation-resistant normalisation | Complete |
+| Static attack corpus (107 cases, 8 vectors) | Complete |
+| Adaptive red-team evaluator (377 cases) | Complete |
+| External evaluation (deepset, 116 cases) | Complete |
+| Baseline comparison (4 systems) | Complete |
+| ROUGE semantic preservation evaluation | Complete |
+| BERTScore semantic evaluation | Complete |
+| GSAM 2026 paper submission | In progress |
 
 ---
 
