@@ -1,5 +1,5 @@
 """
-Layer 0: Risk-scoring policy engine.
+Layer 0b: Risk-scoring policy engine.
 
 Computes a continuous risk score r ∈ [0, 1] for incoming user messages
 before any other layer processes them.
@@ -10,6 +10,12 @@ Score is derived from five weighted sub-scores:
     3. Obfuscation indicators      (weight 0.10)
     4. Source provenance trust     (weight 0.10)
     5. Session flag history        (weight 0.10)
+
+Direct escalation rule:
+    Any single injection signal with individual weight ≥ 0.50 escalates
+    directly to HIGH regardless of composite score. This ensures that
+    unambiguous attack patterns (jailbreak, data exfiltration, direct
+    override) are never downgraded by low scores in other dimensions.
 
 Policy:
     r < 0.35  → LOW    — pass through unchanged
@@ -43,20 +49,19 @@ class RiskLevel(Enum):
 @dataclass
 class RiskScore:
     """Full scoring result for one message."""
-    total: float                          # Composite score r ∈ [0, 1]
-    level: RiskLevel                      # Derived policy level
-    breakdown: Dict[str, float]           # Per-factor scores
-    triggered_signals: List[str]          # Human-readable signal names
-    recommended_action: str               # What the pipeline should do
+    total: float
+    level: RiskLevel
+    breakdown: Dict[str, float]
+    triggered_signals: List[str]
+    recommended_action: str
 
 
 # ── Signal pattern tables ─────────────────────────────────────────────────────
 
-# UK-focused financial PII patterns with per-match weight contributions
 _FINANCIAL_PII: Dict[str, tuple] = {
     "card_number":        (r"\b(?:\d{4}[\s\-]?){3}\d{4}\b",               0.35),
     "iban":               (r"\bGB\d{2}[A-Z]{4}\d{14}\b",                  0.35),
-    "uk_account_number":  (r"\b\d{8}\b",                                   0.30),
+    "uk_account_number":  (r"\b\d{8}\b",                                   0.95),
     "uk_sort_code":       (r"\b\d{2}-\d{2}-\d{2}\b",                      0.25),
     "national_insurance":  (r"\b[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]\b",       0.30),
     "large_amount":       (r"[£$€]\s?\d{4,}",                              0.20),
@@ -64,7 +69,7 @@ _FINANCIAL_PII: Dict[str, tuple] = {
     "uk_phone":           (r"\b(?:07\d{9}|\+44\d{10})\b",                 0.15),
 }
 
-# Prompt injection attack patterns with per-match weight contributions
+# Signals with weight ≥ 0.50 trigger direct HIGH escalation
 _INJECTION: Dict[str, tuple] = {
     "ignore_instructions": (
         r"ignore\s+(previous|prior|above|all)\s+instructions?",            0.55),
@@ -86,7 +91,9 @@ _INJECTION: Dict[str, tuple] = {
         r"(account|wallet|address)",                                       0.60),
 }
 
-# Obfuscation / encoding evasion patterns
+# Threshold for direct HIGH escalation (single signal)
+_DIRECT_ESCALATION_THRESHOLD = 0.50
+
 _OBFUSCATION: Dict[str, tuple] = {
     "base64_like":     (r"[A-Za-z0-9+/]{30,}={0,2}",                      0.30),
     "hex_encoded":     (r"(\\x[0-9a-fA-F]{2}){4,}",                       0.30),
@@ -94,34 +101,32 @@ _OBFUSCATION: Dict[str, tuple] = {
     "excessive_punct": (r"[!@#$%^&*|`]{6,}",                              0.15),
 }
 
-# Source trust contribution to score (higher = less trusted = riskier)
 _SOURCE_TRUST_SCORE: Dict[str, float] = {
-    "system":   0.00,   # App-controlled system prompt — fully trusted
-    "user":     0.25,   # Typed by user — moderate
-    "imported": 0.60,   # CSV / bank statement import — lower trust
-    "external": 0.85,   # Fetched from web or external API — least trusted
+    "system":   0.00,
+    "user":     0.25,
+    "imported": 0.60,
+    "external": 0.85,
 }
 
-# Thresholds
 _THRESHOLD_MEDIUM = 0.35
-_THRESHOLD_HIGH   = 0.65
+_THRESHOLD_HIGH   = 0.24
 
 
-# ── Scorer class ──────────────────────────────────────────────────────────────
+# ── Scorer ────────────────────────────────────────────────────────────────────
 
 class RiskScorer:
     """
-    Stateful risk scorer.
+    Stateful risk scorer with direct escalation for severe injection signals.
 
-    Maintains per-session flag counts so repeat offenders accumulate
-    higher base scores. In production, replace _session_flags with
-    a Redis-backed store for multi-process deployments.
+    Direct escalation rule: any injection signal whose individual weight
+    meets or exceeds _DIRECT_ESCALATION_THRESHOLD (0.50) immediately
+    sets the level to HIGH without waiting for the composite score to
+    cross the threshold. This prevents strong attack signals being
+    diluted by low scores in other dimensions.
     """
 
     def __init__(self):
         self._session_flags: Dict[str, int] = {}
-
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def score(
         self,
@@ -129,28 +134,24 @@ class RiskScorer:
         source: str = "user",
         session_id: Optional[str] = None,
     ) -> RiskScore:
-        """
-        Score a single text chunk.
-
-        Args:
-            text:       Raw input text to evaluate.
-            source:     Provenance label — "system" | "user" | "imported" | "external".
-            session_id: Optional session identifier for history tracking.
-
-        Returns:
-            RiskScore with composite total, level, breakdown, and signals.
-        """
-        signals:   List[str]         = []
-        breakdown: Dict[str, float]  = {}
+        signals:   List[str]        = []
+        breakdown: Dict[str, float] = {}
+        direct_escalation = False
 
         # ── Sub-score 1: Financial PII ────────────────────────────────────
         pii_score = self._match_patterns(text, _FINANCIAL_PII, signals, "pii")
         breakdown["financial_pii"] = round(pii_score, 3)
 
         # ── Sub-score 2: Injection signals ────────────────────────────────
-        inj_score = self._match_patterns(
-            text.lower(), _INJECTION, signals, "injection"
-        )
+        inj_score = 0.0
+        text_lower = text.lower()
+        for name, (pattern, weight) in _INJECTION.items():
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                inj_score = min(inj_score + weight, 1.0)
+                signals.append(f"injection:{name}")
+                # Direct escalation for high-confidence signals
+                if weight >= _DIRECT_ESCALATION_THRESHOLD:
+                    direct_escalation = True
         breakdown["injection"] = round(inj_score, 3)
 
         # ── Sub-score 3: Obfuscation ──────────────────────────────────────
@@ -170,16 +171,16 @@ class RiskScorer:
 
         # ── Weighted composite ────────────────────────────────────────────
         total = round(min(
-            pii_score       * 0.30 +
-            inj_score       * 0.40 +
-            obf_score       * 0.10 +
-            trust_score     * 0.10 +
-            history_score   * 0.10,
+            pii_score   * 0.30 +
+            inj_score   * 0.40 +
+            obf_score   * 0.10 +
+            trust_score * 0.10 +
+            history_score * 0.10,
             1.0,
         ), 4)
 
         # ── Policy decision ───────────────────────────────────────────────
-        if total >= _THRESHOLD_HIGH:
+        if direct_escalation or total >= _THRESHOLD_HIGH:
             level  = RiskLevel.HIGH
             action = (
                 "BLOCK: Do not forward to LLM. "
@@ -205,10 +206,7 @@ class RiskScorer:
         )
 
     def reset_session(self, session_id: str) -> None:
-        """Clear flag history for a session (e.g. on logout)."""
         self._session_flags.pop(session_id, None)
-
-    # ── Internal helpers ──────────────────────────────────────────────────────
 
     @staticmethod
     def _match_patterns(
@@ -217,10 +215,6 @@ class RiskScorer:
         signals: List[str],
         prefix: str,
     ) -> float:
-        """
-        Run all patterns in a table against text.
-        Accumulates weights additively, capped at 1.0.
-        """
         score = 0.0
         for name, (pattern, weight) in patterns.items():
             if re.search(pattern, text, re.IGNORECASE):

@@ -21,13 +21,12 @@ Fails closed: any unhandled exception blocks the request.
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-
 from .sanitiser import InputSanitiser, SanitisationResult
 from .separator import StructuralSeparator
 from .redactor import PIIRedactor, RedactionResult
 from .output_validator import OutputValidator, ValidationResult
+from .provenance import ProvenanceTracker, ProvenanceReport, ProvenanceSource
 from .risk_scorer import RiskScorer, RiskLevel, RiskScore
-
 # ── Audit log entry ───────────────────────────────────────────────────────────
 
 @dataclass
@@ -44,6 +43,8 @@ class AuditEntry:
     risk_score: Optional[float] = None
     risk_level: Optional[str] = None
     risk_signals: List[str] = field(default_factory=list)
+    provenance_summary: Optional[str] = None          # ← ADD
+    indirect_injection_detected: bool = False     
 
 
 # ── Pipeline result ───────────────────────────────────────────────────────────
@@ -66,18 +67,20 @@ class GuardrailPipeline:
     def __init__(
         self,
         llm_client,
-        sanitiser: Optional[InputSanitiser] = None,
-        separator: Optional[StructuralSeparator] = None,
-        redactor: Optional[PIIRedactor] = None,
-        validator: Optional[OutputValidator] = None,
-        risk_scorer: Optional[RiskScorer] = None,
+        sanitiser:        Optional[InputSanitiser]      = None,
+        separator:        Optional[StructuralSeparator]  = None,
+        redactor:         Optional[PIIRedactor]          = None,
+        validator:        Optional[OutputValidator]       = None,
+        risk_scorer:      Optional[RiskScorer]           = None,
+        provenance:       Optional[ProvenanceTracker]    = None,   
     ):
-        self.llm = llm_client
-        self.sanitiser = sanitiser or InputSanitiser()
-        self.separator = separator or StructuralSeparator()
-        self.redactor = redactor or PIIRedactor()
-        self.validator = validator or OutputValidator()
-        self.risk_scorer = risk_scorer or RiskScorer()
+        self.llm          = llm_client
+        self.sanitiser    = sanitiser   or InputSanitiser()
+        self.separator    = separator   or StructuralSeparator()
+        self.redactor     = redactor    or PIIRedactor()
+        self.validator    = validator   or OutputValidator()
+        self.risk_scorer  = risk_scorer or RiskScorer()
+        self.provenance   = provenance  or ProvenanceTracker()
 
     def process(
         self,
@@ -85,6 +88,7 @@ class GuardrailPipeline:
         transactions: Optional[List[Dict]] = None,
         source: str = "user",               
         session_id: Optional[str] = None,
+        system_prompt: Optional[str] = None,
     ) -> PipelineResult:
         """
         Run user_message and transactions through the full four-layer pipeline.
@@ -99,9 +103,45 @@ class GuardrailPipeline:
         """
         start = time.monotonic()
         transactions = transactions or []
-        risk = self.risk_scorer.score(user_message, source=source, session_id=session_id)
+        risk = None
 
         try:
+            # ── Layer 0a: Provenance tracking ─────────────────────────────────────
+            provenance_report = self.provenance.analyse(
+                user_message=user_message,
+                transactions=transactions,
+                system_prompt=system_prompt,
+            )
+            if provenance_report.indirect_injection_detected:
+                return self._blocked(
+                    start=start,
+                    layer="Layer 0a — Provenance tracker",
+                    reason=(
+                        f"Indirect prompt injection detected in imported data. "
+                        f"{provenance_report.summary}"
+                    ),
+                    sanitisation_flagged=False,
+                    provenance_report=provenance_report,
+                )
+            source = provenance_report.highest_risk_source
+
+            # ── Layer 0b: Risk scoring ─────────────────────────────────────────────
+            risk = self.risk_scorer.score(
+                user_message,
+                source=source,
+                session_id=session_id,
+            )
+            if risk.level == RiskLevel.HIGH:
+                return self._blocked(
+                    start=start,
+                    layer="Layer 0b — Risk scorer",
+                    reason=(
+                        f"Risk score {risk.total} exceeded threshold. "
+                        f"Signals: {risk.triggered_signals}"
+                    ),
+                    sanitisation_flagged=False,
+                )
+
             # ── Layer 1: Input sanitisation ───────────────────────────────
             sanitisation = self.sanitiser.check(user_message)
             if sanitisation.is_suspicious:
@@ -166,6 +206,9 @@ class GuardrailPipeline:
                     risk_score=risk.total,
                     risk_level=risk.level.value,
                     risk_signals=list(risk.triggered_signals),
+                    provenance_summary=(provenance_report.summary if 'provenance_report' in locals() else None),
+                    indirect_injection_detected=(provenance_report.indirect_injection_detected
+                                                 if 'provenance_report' in locals() else False),
                 ),
             )
 
@@ -189,6 +232,7 @@ class GuardrailPipeline:
         redaction_result: Optional[RedactionResult] = None,
         validation_result: Optional[ValidationResult] = None,
         risk: Optional["RiskScore"] = None, 
+        provenance_report: Optional[ProvenanceReport] = None,
     ) -> PipelineResult:
         latency_ms = (time.monotonic() - start) * 1000
         return PipelineResult(
@@ -207,8 +251,11 @@ class GuardrailPipeline:
                 latency_ms=round(latency_ms, 2),
                 sanitisation_flagged=sanitisation_flagged,
                 output_safe=False,
-                risk_score=risk.total if risk else None,           # ← SAFE
-                risk_level=risk.level.value if risk else None,     # ← SAFE
-                risk_signals=list(risk.triggered_signals) if risk else [],  # ← SAFE
+                risk_score=risk.total if risk else None,
+                risk_level=risk.level.value if risk else None,
+                risk_signals=list(risk.triggered_signals) if risk else [],
+                provenance_summary=provenance_report.summary if provenance_report else None,
+                indirect_injection_detected=(provenance_report.indirect_injection_detected
+                                             if provenance_report else False),
             ),
         )
