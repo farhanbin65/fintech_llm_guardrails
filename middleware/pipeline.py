@@ -27,6 +27,7 @@ from .redactor import PIIRedactor, RedactionResult
 from .output_validator import OutputValidator, ValidationResult
 from .provenance import ProvenanceTracker, ProvenanceReport, ProvenanceSource
 from .risk_scorer import RiskScorer, RiskLevel, RiskScore
+from .allowlist import AllowlistEngine, ActionProposal, ActionResult
 # ── Audit log entry ───────────────────────────────────────────────────────────
 
 @dataclass
@@ -44,6 +45,7 @@ class AuditEntry:
     risk_level: Optional[str] = None
     risk_signals: List[str] = field(default_factory=list)
     provenance_summary: Optional[str] = None          # ← ADD
+    action_result: Optional[str] = None   # ← ADD — allowlist audit note
     indirect_injection_detected: bool = False     
 
 
@@ -72,7 +74,8 @@ class GuardrailPipeline:
         redactor:         Optional[PIIRedactor]          = None,
         validator:        Optional[OutputValidator]       = None,
         risk_scorer:      Optional[RiskScorer]           = None,
-        provenance:       Optional[ProvenanceTracker]    = None,   
+        provenance:       Optional[ProvenanceTracker]    = None,
+        allowlist: Optional[AllowlistEngine] = None,   
     ):
         self.llm          = llm_client
         self.sanitiser    = sanitiser   or InputSanitiser()
@@ -81,6 +84,7 @@ class GuardrailPipeline:
         self.validator    = validator   or OutputValidator()
         self.risk_scorer  = risk_scorer or RiskScorer()
         self.provenance   = provenance  or ProvenanceTracker()
+        self.allowlist = allowlist or AllowlistEngine()
 
     def process(
         self,
@@ -221,6 +225,33 @@ class GuardrailPipeline:
                 sanitisation_flagged=False,
                 risk=risk,
             )
+
+    def validate_action(
+        self,
+        action_name: str,
+        params: dict = None,
+        raw_response: str = "",
+    ) -> ActionResult:
+        """
+        Validate a proposed action from the LLM against the allowlist.
+
+        Call this from your route handler when the LLM response
+        contains a structured action proposal, before executing anything.
+
+        Args:
+            action_name:  The action the LLM proposed.
+            params:       Parameters extracted from the LLM proposal.
+            raw_response: Original LLM response text for audit trail.
+
+        Returns:
+            ActionResult — approved/denied with full audit note.
+        """
+        proposal = ActionProposal(
+            action_name=action_name,
+            params=params or {},
+            raw_response=raw_response,
+        )
+        return self.allowlist.validate_proposal(proposal)
     
 
     def _blocked(
@@ -257,5 +288,6 @@ class GuardrailPipeline:
                 provenance_summary=provenance_report.summary if provenance_report else None,
                 indirect_injection_detected=(provenance_report.indirect_injection_detected
                                              if provenance_report else False),
+                
             ),
         )
