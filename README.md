@@ -154,55 +154,6 @@ Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% o
 
 ---
 
-## Quick Start
-
-```bash
-git clone https://github.com/farhanbin65/fintech_llm_guard.git
-cd fintech_llm_guard
-pip install -r requirements.txt
-cp .env.example .env
-# Add your LLM API key to .env
-```
-
-**Run the test suite:**
-
-```bash
-# Fast suite — 164 tests, ~12 seconds
-pytest tests/ -q -m "not slow and not redteam" --timeout=300
-
-# Red-team suite — 27 tests, ~4 seconds
-pytest tests/test_redteam.py -v --timeout=300
-```
-
-**Run evaluations:**
-
-```bash
-# Adaptive red-team evaluation
-python evaluation/run_redteam.py
-
-# Static corpus
-python tests/attacks/run_corpus.py
-
-# External evaluation (deepset dataset)
-python evaluation/run_external_eval.py
-
-# Semantic preservation
-python evaluation/run_rouge.py
-python evaluation/run_bertscore.py
-```
-
-**Run baselines** (each in a **separate terminal** — large models, OOM risk if combined):
-
-```bash
-python tests/baselines/run_presidio_only.py
-python tests/baselines/run_llmguard_only.py
-python tests/baselines/run_deepset_deberta_only.py
-python tests/baselines/run_promptguard_only.py
-python tests/baselines/run_ours_only.py
-```
-
----
-
 ## Environment Variables
 
 Copy `.env.example` to `.env`:
