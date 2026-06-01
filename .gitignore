@@ -9,3 +9,6 @@ __pycache__/
 .ipynb_checkpoints/
 evaluation/results/*.csv
 !evaluation/results/.gitkeep.cache/
+dist/
+build/
+*.egg-info/

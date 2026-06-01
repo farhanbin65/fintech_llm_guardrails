@@ -14,11 +14,7 @@ flowchart TD
     
     subgraph Middleware ["Middleware: Novel contribution"]
         InputSanitiser([Input sanitiser])
-        StructuralSeparator([Structural separator])mv app/llm_client.py middleware/llm_client.py
-rmdir app
-git add -A
-git commit -m "refactor: move llm_client.py to middleware/, remove empty app/ directory, fix diagram filename typo"
-git push
+        StructuralSeparator([Structural separator])
         PIIRedactor([PII redactor])
         OutputValidator([Output validator])
         
