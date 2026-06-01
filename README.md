@@ -68,42 +68,80 @@ Layer 1 applies a multi-stage normalisation pipeline before pattern matching, de
 
 The middleware sits between the application backend and the LLM API. All sensitive data passes through it before leaving the trust boundary, and all responses pass back through it before reaching the user.
 
-```mermaid
 ---
 config:
   layout: fixed
 ---
-flowchart TB
-    start["Incoming request:<br>Chat message + retrieved transactions"] --> layer1["Layer 1 - Input sanitisation<br>Regex and keyword filters for known injection patterns<br>Effort: 1 to 2 days<br>Catches: low-effort attacks, obvious payloads"]
-    layer1 --> layer2["Layer 2 - Structural separation<br>Wrap untrusted data in delimiters;<br>instruct LLM to ignore instructions inside<br>Effort: 1 day<br>Catches: indirect injection from DB and CSV imports"]
-    layer2 --> layer3["Layer 3 - PII redaction privacy contribution<br>Presidio plus custom financial entity rules;<br>pseudonymise then re-map response<br>Effort: 3 to 4 days<br>Catches: PII leakage to third-party LLM"]
-    layer3 --> llmapi["LLM API<br>External call, OpenAI-compatible<br><b>⚠️ External Trust Boundary</b>"]
-    llmapi --> layer4["Layer 4 - Output validation<br>Reject responses with unauthorised function calls,<br>external URLs, or leaked tokens<br>Effort: 2 days<br>Catches: action hijacking and exfiltration"]
-    layer4 --> layer5["Layer 5 - Behavioural classifier stretch goal<br>Small DistilBERT classifier trained on<br>injection vs benign inputs<br>Effort: 5 to 7 days<br>Only attempt if Layers 1 to 4 ship on time"]
-    layer5 --> deferred["Deferred - fine-tuned guard models,<br>constitutional AI, dual-LLM patterns<br>Outside scope;<br>mention in future work section"]
-    deferred --> end_node["Validated response to user<br>Safe and privacy-preserved"]
-    legend["<b>Colour Legend</b><br>🟢 Green = Build for paper MVP<br>🟡 Amber = Stretch goal<br>⬜ Grey = Defer to future work"]
+flowchart LR
 
-     start:::startStyle
-     layer1:::mvpStyle
-     layer2:::mvpStyle
-     layer3:::mvpStyle
-     llmapi:::externalStyle
-     layer4:::mvpStyle
-     layer5:::stretchStyle
-     deferred:::deferStyle
-     end_node:::endStyle
-     legend:::legendStyle
-    classDef legendStyle stroke:#6b7280,fill:#f3f4f6,color:#1e1b4b
-    classDef startStyle stroke:#38bdf8,fill:#f0f9ff,color:#1e1b4b
-    classDef mvpStyle stroke:#4ade80,fill:#f0fdf4,color:#1e1b4b
-    classDef externalStyle stroke:#fb923c,fill:#fff7ed,color:#1e1b4b
-    classDef stretchStyle stroke:#facc15,fill:#fefce8,color:#1e1b4b
-    classDef deferStyle stroke:#d1d5db,fill:#f9fafb,color:#1e1b4b
-    classDef endStyle stroke:#2dd4bf,fill:#f0fdfa,color:#1e1b4b
-```
+    A["User Request<br/>+ Transactions"]
+    B["Input Filtering"]
+    C["Context Isolation"]
+    D["PII Redaction"]
+    E["LLM API<br/>🌐 Trust Boundary"]
+    F["Output Validation"]
+    G["Behavioural Detection<br/>(Optional)"]
+    H["Safe Response"]
 
-```mermaid
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+
+    classDef input fill:#eff6ff,stroke:#3b82f6;
+    classDef security fill:#f0fdf4,stroke:#22c55e;
+    classDef external fill:#fff7ed,stroke:#f97316;
+    classDef optional fill:#fefce8,stroke:#eab308;
+    classDef output fill:#f0fdfa,stroke:#14b8a6;
+
+    class A input;
+    class B,C,D,F security;
+    class E external;
+    class G optional;
+    class H output;
+
+---
+
+config:
+  layout: elk
+  theme: neo
+  look: neo
+---
+flowchart TD
+    User[User: Finance tracker UI]
+    Flask[Flask backend: Routes + MongoDB]
+    LLMAPI[LLM API: OpenAI-compatible]
+    
+    User -->|raw input| Flask
+    Flask --> InputSanitiser
+    
+    subgraph Middleware ["Middleware: Novel contribution"]
+        InputSanitiser([Input sanitiser])
+        StructuralSeparator([Structural separator])
+        PIIRedactor([PII redactor])
+        OutputValidator([Output validator])
+        
+        InputSanitiser --> StructuralSeparator
+        StructuralSeparator --> PIIRedactor
+        PIIRedactor --> OutputValidator
+    end
+    
+    PIIRedactor -->|sanitised and redacted prompt| LLMAPI
+    LLMAPI -->|response| OutputValidator
+    OutputValidator -->|validated response| Flask
+    Flask -->|safe response| User
+    
+    classDef middlewareBox fill:#f0f9ff,stroke:#38bdf8,stroke-width:2px,color:#1e1b4b
+    classDef externalRisk fill:#fef2f2,stroke:#f87171,stroke-width:2px,color:#1e1b4b
+    classDef roundNode fill:#eef2ff,stroke:#818cf8,stroke-width:2px,color:#1e1b4b
+    
+    class Middleware middlewareBox
+    class LLMAPI externalRisk
+    class User,Flask roundNode
+
 ---
 config:
   layout: dagre
@@ -130,9 +168,6 @@ flowchart TB
     classDef directAttack stroke:#fb7185,fill:#fff1f2,color:#1e1b4b,stroke-width:2px
     classDef indirectAttack stroke:#fb923c,fill:#fff7ed,color:#1e1b4b,stroke-width:2px
     classDef legend stroke:#a78bfa,fill:#f5f3ff,color:#1e1b4b,stroke-width:2px
-```
-
-See [`docs/architecture.md`](docs/architecture.md) for a full written walkthrough of each layer's design decisions.
 
 ---
 
