@@ -9,10 +9,29 @@
 ![Tests](https://img.shields.io/badge/tests-191%20passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/attack%20block%20rate-100%25-brightgreen.svg)
 
+## Quick install
+```bash
+pip install fintech-llm-guard
+python -m spacy download en_core_web_lg
+```
+
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
 
 **Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London  
 **Licence:** MIT
+
+## Usage
+```python
+from fintech_llm_guard import GuardrailPipeline
+
+pipeline = GuardrailPipeline()
+result = pipeline.process(user_message, transaction_context)
+
+if result.blocked:
+  print("Blocked:", result.block_reason)
+else:
+  print("Safe response:", result.response)
+```
 
 ---
 
