@@ -4,6 +4,21 @@ This document describes the system architecture and the four-layer defence middl
 
 ---
 
+## Design Philosophy — Precision First
+
+This middleware is deliberately **precision-optimised** rather than recall-optimised.
+For a deployed financial assistant, a false positive (blocking a legitimate user query)
+is a far more damaging failure than a missed generic attack: it breaks trust in the
+product on every wrong block. The design therefore enforces a hard **0% false-positive
+constraint** and accepts lower recall on attack classes that fall outside the fintech
+threat model (e.g. generic roleplay jailbreaks).
+
+The consequence is visible in the evaluation: high precision and zero false positives
+throughout, with a recall gap on out-of-domain injections. This is an intentional
+trade-off, not an oversight.
+
+---
+
 ## System overview
 
 <div align="center">
