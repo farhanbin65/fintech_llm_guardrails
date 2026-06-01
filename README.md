@@ -107,8 +107,8 @@ flowchart LR
     class H output;
 ```
 
----
-# System Architecture Diagram
+  ---
+  # System Architecture Diagram
 ```mermaid
 ---
 config:
@@ -148,7 +148,7 @@ flowchart TD
     class LLMAPI externalRisk
     class User,Flask roundNode
 ```
-
+---
 #### Threat model / Attack vectors
 Overview of evaluated attack vectors.
 
