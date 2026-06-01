@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
-![Tests](https://github.com/farhanbin65/fintech_llm_guardrails/actions/workflows/ci.yml/badge.svg)
+![Tests](https://github.com/farhanbin65/fintech_llm_guardrails/actions/workflows/publish.yml/badge.svg)
 ![FPR](https://img.shields.io/badge/false%20positive%20rate-0%25-brightgreen.svg)
 ![Latency](https://img.shields.io/badge/mean%20latency-5.8ms-brightgreen.svg)
 
