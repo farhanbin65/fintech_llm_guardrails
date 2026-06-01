@@ -4,7 +4,7 @@ from fintech_llm_guard.sanitiser import InputSanitiser
 from fintech_llm_guard.separator import StructuralSeparator
 from fintech_llm_guard.output_validator import OutputValidator
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 __all__ = [
     "GuardrailPipeline",
     "PIIRedactor",
