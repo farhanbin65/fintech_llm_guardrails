@@ -1,4 +1,4 @@
-from middleware.separator import StructuralSeparator
+from fintech_llm_guard.separator import StructuralSeparator
 
 
 sep = StructuralSeparator()

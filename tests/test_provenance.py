@@ -7,7 +7,7 @@ report summary generation.
 """
 
 import pytest
-from middleware.provenance import (
+from fintech_llm_guard.provenance import (
     ProvenanceTracker,
     ProvenanceSource,
 )

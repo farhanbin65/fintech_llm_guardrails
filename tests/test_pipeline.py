@@ -3,7 +3,7 @@ Pipeline tests use a mock LLM client so no real API key is needed.
 """
 
 import pytest
-from middleware.pipeline import GuardrailPipeline
+from fintech_llm_guard.pipeline import GuardrailPipeline
 from tests.conftest import MockRedactor
 
 
@@ -156,7 +156,7 @@ def test_audit_records_block_layer():
 
 def test_pii_redacted_before_llm_call(shared_redactor):
     """LLM should never receive raw PII — uses shared real redactor."""
-    from middleware.pipeline import GuardrailPipeline
+    from fintech_llm_guard.pipeline import GuardrailPipeline
 
     class _CaptureLLM:
         last_messages = None

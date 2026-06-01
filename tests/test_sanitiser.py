@@ -1,4 +1,4 @@
-from middleware.sanitiser import InputSanitiser
+from fintech_llm_guard.sanitiser import InputSanitiser
 
 
 def test_benign_input_passes():

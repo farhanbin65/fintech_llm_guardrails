@@ -1,4 +1,4 @@
-from middleware.redactor import PIIRedactor
+from fintech_llm_guard.redactor import PIIRedactor
 
 
 redactor = PIIRedactor()

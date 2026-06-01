@@ -6,7 +6,7 @@ and source trust weighting.
 """
 
 import pytest
-from middleware.risk_scorer import RiskScorer, RiskLevel
+from fintech_llm_guard.risk_scorer import RiskScorer, RiskLevel
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

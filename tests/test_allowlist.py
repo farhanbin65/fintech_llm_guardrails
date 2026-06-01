@@ -6,7 +6,7 @@ confirmation requirements, and injection resistance.
 """
 
 import pytest
-from middleware.allowlist import (
+from fintech_llm_guard.allowlist import (
     AllowlistEngine,
     AllowedAction,
     ActionProposal,

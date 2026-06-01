@@ -1,4 +1,4 @@
-from middleware.output_validator import OutputValidator
+from fintech_llm_guard.output_validator import OutputValidator
 
 
 validator = OutputValidator()

@@ -6,7 +6,7 @@ response checking, and pipeline integration.
 """
 
 import pytest
-from middleware.canary import (
+from fintech_llm_guard.canary import (
     CanaryManager,
     CanarySession,
     CanaryClass,
@@ -169,7 +169,7 @@ def test_response_excerpt_captured(session):
 
 # ── Pipeline integration ──────────────────────────────────────────────────────
 def test_pipeline_blocks_canary_in_response():
-    from middleware.pipeline import GuardrailPipeline
+    from fintech_llm_guard.pipeline import GuardrailPipeline
     from tests.conftest import MockRedactor
 
     planted_tokens = []
@@ -198,7 +198,7 @@ def test_pipeline_blocks_canary_in_response():
 
 
 def test_pipeline_passes_clean_response():
-    from middleware.pipeline import GuardrailPipeline
+    from fintech_llm_guard.pipeline import GuardrailPipeline
     from tests.conftest import MockRedactor
 
     class _CleanLLM:
@@ -219,7 +219,7 @@ def test_pipeline_passes_clean_response():
 
 def test_canary_audit_note_in_passed_response():
     """Even passing responses should have canary audit note."""
-    from middleware.pipeline import GuardrailPipeline
+    from fintech_llm_guard.pipeline import GuardrailPipeline
     from tests.conftest import MockRedactor
 
     class _CleanLLM:

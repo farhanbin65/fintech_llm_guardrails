@@ -40,7 +40,7 @@ def shared_redactor():
     Inject this wherever a test needs genuine Presidio/spaCy redaction.
     Avoids repeated cold model loads that cause timeout in full suite.
     """
-    from middleware.redactor import PIIRedactor
+    from fintech_llm_guard.redactor import PIIRedactor
     return PIIRedactor()
 
 
@@ -52,7 +52,7 @@ def shared_pipeline(shared_redactor):
     GuardrailPipeline with real redactor, loaded once per session.
     Use this in integration tests that need end-to-end PII redaction.
     """
-    from middleware.pipeline import GuardrailPipeline
+    from fintech_llm_guard.pipeline import GuardrailPipeline
 
     class _SafeLLM:
         def chat(self, messages):

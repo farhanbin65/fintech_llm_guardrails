@@ -2,7 +2,7 @@
 Tests for obfuscation-resistant normalisation in Layer 1.
 Covers: homoglyphs, leetspeak, spaced characters, morse, RTL override.
 """
-from middleware.sanitiser import InputSanitiser
+from fintech_llm_guard.sanitiser import InputSanitiser
 
 s = InputSanitiser()
 
