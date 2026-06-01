@@ -68,6 +68,7 @@ Layer 1 applies a multi-stage normalisation pipeline before pattern matching, de
 
 The middleware sits between the application backend and the LLM API. All sensitive data passes through it before leaving the trust boundary, and all responses pass back through it before reaching the user.
 
+```mermaid
 ---
 config:
   layout: fixed
@@ -102,9 +103,12 @@ flowchart LR
     class E external;
     class G optional;
     class H output;
+```
 
 ---
 
+```mermaid
+---
 config:
   layout: elk
   theme: neo
@@ -141,7 +145,9 @@ flowchart TD
     class Middleware middlewareBox
     class LLMAPI externalRisk
     class User,Flask roundNode
+```
 
+```mermaid
 ---
 config:
   layout: dagre
@@ -168,6 +174,7 @@ flowchart TB
     classDef directAttack stroke:#fb7185,fill:#fff1f2,color:#1e1b4b,stroke-width:2px
     classDef indirectAttack stroke:#fb923c,fill:#fff7ed,color:#1e1b4b,stroke-width:2px
     classDef legend stroke:#a78bfa,fill:#f5f3ff,color:#1e1b4b,stroke-width:2px
+```
 
 ---
 
