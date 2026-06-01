@@ -2,10 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/fintech-llm-guard.svg)](https://pypi.org/project/fintech-llm-guard/)
 
-#### Middleware architecture
-Diagram showing middleware components and data flow.
 
-```mermaid
 ![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
 ![Tests](https://img.shields.io/badge/tests-191%20passing-brightgreen.svg)
@@ -111,7 +108,7 @@ flowchart LR
 ```
 
 ---
-
+# System Architecture Diagram
 ```mermaid
 ---
 config:
