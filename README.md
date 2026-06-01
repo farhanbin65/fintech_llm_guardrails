@@ -274,6 +274,34 @@ Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% o
 
 ---
 
+## Known Limitations
+
+### Input-side intent control
+
+**Known gap:** Action control is currently enforced only on the output side. The
+pipeline does not yet gate *requested intent* between Layer 3 (redaction) and the LLM,
+so a malicious action-request (e.g. an injected `transfer` instruction) is processed by
+the model and caught only afterwards. This single-sided control is the primary reason
+the Action Hijacking (V4) vector scores lower than the override-based vectors — there is
+one defensive layer behind it rather than two.
+
+**Current mitigation:** Layer 4b (action allowlist) validates every action the LLM emits
+against a set of approved function calls and blocks anything unapproved. This is an
+effective backstop, but it acts *after* the model has already processed the malicious
+intent rather than preventing it from reaching the model.
+
+**Future work — L3b tiered intent gate:** A pre-LLM stage that classifies each request
+into an open tier (read-only conversational queries, passed through untouched), a
+sensitive tier (privileged or state-changing actions, default-deny against a
+configurable allowlist), and a forbidden tier (always blocked). The decision is routed
+through the existing risk scorer (Layer 0b) with an adjustable threshold, giving each
+deployment its own risk posture without code changes. The design remains deterministic
+and preserves the hard 0% false-positive constraint — no learned classifier is
+introduced. This converts single-sided output control into two-sided defence-in-depth
+and is expected to directly improve V4 detection.
+
+---
+
 ## Project Status
 
 | Component | Status |
