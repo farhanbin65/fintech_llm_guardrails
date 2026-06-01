@@ -14,7 +14,7 @@ pip install fintech-llm-guard
 python -m spacy download en_core_web_lg
 ```
 
-A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project submitted to **GSAM 2026** (Global Symposium on Adaptive Manufacturing, Ulster University, 7 September 2026).
+A privacy-preserving and injection-resistant middleware layer for LLM-powered personal finance applications. Research project.
 
 **Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London  
 **Licence:** MIT
@@ -107,8 +107,9 @@ flowchart LR
     class H output;
 ```
 
-  ---
-  # System Architecture Diagram
+---
+#### System architecture / Diagram
+Overview of middleware components and data flow.
 ```mermaid
 ---
 config:
