@@ -2,8 +2,10 @@
 
 [![PyPI version](https://badge.fury.io/py/fintech-llm-guard.svg)](https://pypi.org/project/fintech-llm-guard/)
 
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+#### Middleware architecture
+Diagram showing middleware components and data flow.
+
+```mermaid
 ![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
 ![Tests](https://img.shields.io/badge/tests-191%20passing-brightgreen.svg)
@@ -67,6 +69,9 @@ Layer 1 applies a multi-stage normalisation pipeline before pattern matching, de
 ## Architecture
 
 The middleware sits between the application backend and the LLM API. All sensitive data passes through it before leaving the trust boundary, and all responses pass back through it before reaching the user.
+
+#### High-level flow
+Overview of request processing through the pipeline.
 
 ```mermaid
 ---
@@ -146,6 +151,9 @@ flowchart TD
     class LLMAPI externalRisk
     class User,Flask roundNode
 ```
+
+#### Threat model / Attack vectors
+Overview of evaluated attack vectors.
 
 ```mermaid
 ---
