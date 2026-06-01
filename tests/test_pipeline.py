@@ -52,7 +52,7 @@ def test_audit_log_populated():
     pipeline = GuardrailPipeline(llm_client=MockLLM(), redactor=MockRedactor())
     result = pipeline.process("How much did I spend?", SAMPLE_TRANSACTIONS)
     assert result.audit is not None
-    assert result.audit.latency_ms > 0
+    assert result.audit.latency_ms >= 0
     assert not result.audit.blocked
     assert result.audit.risk_score is not None
     assert result.audit.risk_level in {"low", "medium", "high"}

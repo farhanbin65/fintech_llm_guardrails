@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "fintech-llm-guard"
+version = "0.1.0"
+description = "Eight-layer middleware guardrail pipeline for LLM-powered personal finance applications"
+readme = "README.md"
+licence = {text = "MIT"}
+authors = [{name = "Farhan Bin Hossain", email = "your@email.com"}]
+keywords = ["llm", "guardrails", "fintech", "pii", "prompt-injection", "privacy", "gdpr"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Security",
+    "Topic :: Office/Business :: Financial",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Licence :: OSI Approved :: MIT Licence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+    "spacy>=3.7.0",
+    "phonenumbers>=8.13.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/farhanbin65/fintech_llm_guard"
+Repository = "https://github.com/farhanbin65/fintech_llm_guard"
+Issues = "https://github.com/farhanbin65/fintech_llm_guard/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["middleware*"]
