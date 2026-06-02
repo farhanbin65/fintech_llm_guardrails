@@ -1,6 +1,6 @@
 # Fintech LLM Guardrails
 
-[![PyPI version](https://badge.fury.io/py/fintech-llm-guard.svg)](https://pypi.org/project/fintech-llm-guard/)
+[![PyPI version](https://badge.fury.io/py/fintech-llm-guard.svg?cacheBust=1)](https://pypi.org/project/fintech-llm-guard/)
 
 ![Status](https://img.shields.io/badge/status-development-purple.svg)
 ![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)
