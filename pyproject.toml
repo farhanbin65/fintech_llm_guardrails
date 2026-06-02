@@ -8,7 +8,7 @@ version = "0.3.0"
 description = "Eight-layer middleware guardrail pipeline for LLM-powered personal finance applications"
 readme = "README.md"
 license = {text = "MIT"}
-authors = [{name = "Farhan Bin Hossain", email = "your@email.com"}]
+authors = [{name = "Farhan Bin Hossain", email = "farhanbin65@gmail.com"}]
 keywords = ["llm", "guardrails", "fintech", "pii", "prompt-injection", "privacy", "gdpr"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -29,9 +29,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/farhanbin65/fintech_llm_guard"
-Repository = "https://github.com/farhanbin65/fintech_llm_guard"
-Issues = "https://github.com/farhanbin65/fintech_llm_guard/issues"
+Homepage = "https://github.com/farhanbin65/fintech_llm_guardrails"
+Repository = "https://github.com/farhanbin65/fintech_llm_guardrails"
+Issues = "https://github.com/farhanbin65/fintech_llm_guardrails/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
