@@ -21,18 +21,45 @@ A privacy-preserving and injection-resistant middleware layer for LLM-powered pe
 **Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London  
 **Licence:** MIT
 
-## Usage
+---
+
+## Quick Start
+
 ```python
 from fintech_llm_guard import GuardrailPipeline
 
+# Initialise once at app startup — not inside a route
 pipeline = GuardrailPipeline()
-result = pipeline.process(user_message, transaction_context)
 
-if result.blocked:
-  print("Blocked:", result.block_reason)
-else:
-  print("Safe response:", result.response)
+# Step 1 — sanitise and redact user input
+input_result = pipeline.process_input(
+    user_message=user_message,
+    transaction_context=transactions  # list of dicts from your database
+)
+
+if input_result["blocked"]:
+    return {"error": input_result["block_reason"]}, 400
+
+# Step 2 — call your LLM (the pipeline does not do this)
+llm_response = your_llm_client.chat(input_result["cleaned_prompt"])
+
+# Step 3 — validate and restore LLM response
+output_result = pipeline.process_output(
+    llm_response=llm_response,
+    replacements=input_result["replacements"]
+)
+
+if output_result["blocked"]:
+    return {"error": output_result["block_reason"]}, 500
+
+safe_response = output_result["response"]
 ```
+
+> The pipeline is provider-agnostic — works with Groq, OpenAI, Anthropic,
+> Azure OpenAI, or any OpenAI-compatible endpoint.
+
+For full integration guide, field reference, Flask example, and common questions
+see [docs/INTEGRATION.md](docs/INTEGRATION.md)
 
 ---
 

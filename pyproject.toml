@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fintech-llm-guard"
-version = "0.3.1"
+version = "0.3.0"
 description = "Eight-layer middleware guardrail pipeline for LLM-powered personal finance applications"
 readme = "README.md"
 license = {text = "MIT"}
