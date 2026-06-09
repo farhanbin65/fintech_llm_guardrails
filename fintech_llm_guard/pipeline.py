@@ -71,25 +71,36 @@ class GuardrailPipeline:
 
     def __init__(
         self,
-        llm_client,
-        sanitiser:        Optional[InputSanitiser]      = None,
-        separator:        Optional[StructuralSeparator]  = None,
-        redactor:         Optional[PIIRedactor]          = None,
-        validator:        Optional[OutputValidator]       = None,
-        risk_scorer:      Optional[RiskScorer]           = None,
-        provenance:       Optional[ProvenanceTracker]    = None,
-        allowlist: Optional[AllowlistEngine] = None,  
-        canary_manager: Optional[CanaryManager] = None, 
+        llm_client=None,
+        *,
+        api_key: str = None,
+        api_url: str = None,
+        model: str = None,
+        sanitiser:      Optional[InputSanitiser]     = None,
+        separator:      Optional[StructuralSeparator] = None,
+        redactor:       Optional[PIIRedactor]         = None,
+        validator:      Optional[OutputValidator]      = None,
+        risk_scorer:    Optional[RiskScorer]          = None,
+        provenance:     Optional[ProvenanceTracker]   = None,
+        allowlist:      Optional[AllowlistEngine]     = None,
+        canary_manager: Optional[CanaryManager]       = None,
     ):
-        self.llm          = llm_client
-        self.sanitiser    = sanitiser   or InputSanitiser()
-        self.separator    = separator   or StructuralSeparator()
-        self.redactor     = redactor    or PIIRedactor()
-        self.validator    = validator   or OutputValidator()
-        self.risk_scorer  = risk_scorer or RiskScorer()
-        self.provenance   = provenance  or ProvenanceTracker()
-        self.allowlist = allowlist or AllowlistEngine()
-        self.canary_manager = canary_manager or CanaryManager() 
+        if llm_client is not None:
+            self.llm = llm_client
+        elif api_key or api_url or model:
+            from .llm_client import LLMClient
+            self.llm = LLMClient(api_key=api_key, api_url=api_url, model=model)
+        else:
+            self.llm = None  # guardrail-only mode
+
+        self.sanitiser      = sanitiser      or InputSanitiser()
+        self.separator      = separator      or StructuralSeparator()
+        self.redactor       = redactor       or PIIRedactor()
+        self.validator      = validator      or OutputValidator()
+        self.risk_scorer    = risk_scorer    or RiskScorer()
+        self.provenance     = provenance     or ProvenanceTracker()
+        self.allowlist      = allowlist      or AllowlistEngine()
+        self.canary_manager = canary_manager or CanaryManager()
 
     def process(
         self,
@@ -184,6 +195,51 @@ class GuardrailPipeline:
             messages[1]["content"] = redaction.redacted_text
 
             # ── LLM API call ──────────────────────────────────────────────
+            if self.llm is None:
+                # Guardrail-only mode — return the safe prompt for the caller to use
+                return PipelineResult(
+                    response=redaction.redacted_text,
+                    blocked=False,
+                    block_layer=None,
+                    block_reason=None,
+                    redaction_result=redaction,
+                    validation_result=None,
+                    audit=AuditEntry(
+                        timestamp=start,
+                        blocked=False,
+                        block_layer=None,
+                        block_reason=None,
+                        entities_redacted=redaction.entities_found,
+                        latency_ms=round((time.monotonic() - start) * 1000, 2),
+                        sanitisation_flagged=False,
+                        output_safe=True,
+                        risk_score=risk.total if risk else None,
+                        risk_level=risk.level.value if risk else None,
+                        risk_signals=list(risk.triggered_signals) if risk else [],
+                    ),
+                )
+            if self.llm is None:
+                return PipelineResult(
+                    response=redaction.redacted_text,
+                    blocked=False,
+                    block_layer=None,
+                    block_reason=None,
+                    redaction_result=redaction,
+                    validation_result=None,
+                    audit=AuditEntry(
+                        timestamp=start,
+                        blocked=False,
+                        block_layer=None,
+                        block_reason=None,
+                        entities_redacted=redaction.entities_found,
+                        latency_ms=round((time.monotonic() - start) * 1000, 2),
+                        sanitisation_flagged=False,
+                        output_safe=True,
+                        risk_score=risk.total if risk else None,
+                        risk_level=risk.level.value if risk else None,
+                        risk_signals=list(risk.triggered_signals) if risk else [],
+                    ),
+                )
             raw_response = self.llm.chat(messages)
 
             # ── Canary check ──────────────────────────────────────────────────────
