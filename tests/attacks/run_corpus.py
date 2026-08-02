@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from middleware.pipeline import GuardrailPipeline
+from fintech_llm_guard.pipeline import GuardrailPipeline
 
 
 # ── Mock LLM ──────────────────────────────────────────────────────────────────

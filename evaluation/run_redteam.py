@@ -46,7 +46,7 @@ from typing import Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from middleware.pipeline import GuardrailPipeline
+from fintech_llm_guard.pipeline import GuardrailPipeline
 
 
 # ── Mock LLM ──────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ class _MockRedactor:
     """Lightweight redactor for evaluation — skips spaCy model load."""
 
     def redact(self, text):
-        from middleware.redactor import RedactionResult
+        from fintech_llm_guard.redactor import RedactionResult
 
         return RedactionResult(redacted_text=text, mapping={}, entities_found=[])
 
@@ -256,7 +256,7 @@ class RedTeamEvaluator:
         self.apply_mutations  = apply_mutations
         self.vector_filter    = vector_filter
         # Use mock redactor to skip spaCy cold-load in test/eval context
-        from middleware.redactor import PIIRedactor
+        from fintech_llm_guard.redactor import PIIRedactor
 
         redactor = _MockRedactor() if use_mock_redactor else PIIRedactor()
         self.pipeline = GuardrailPipeline(

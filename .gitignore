@@ -12,3 +12,5 @@ evaluation/results/*.csv
 dist/
 build/
 *.egg-info/
+.venv/
+.venv/

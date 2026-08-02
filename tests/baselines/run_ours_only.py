@@ -29,10 +29,10 @@ def main():
     true_attacks = [c for c in attack_cases if c["expected_blocked"]]
     print(f"Fintech LLM Guard — {len(true_attacks)} attack cases, {len(fp_cases)} legit queries\n")
 
-    from middleware.sanitiser import InputSanitiser
-    from middleware.separator import StructuralSeparator
-    from middleware.redactor import PIIRedactor
-    from middleware.output_validator import OutputValidator
+    from fintech_llm_guard.sanitiser import InputSanitiser
+    from fintech_llm_guard.separator import StructuralSeparator
+    from fintech_llm_guard.redactor import PIIRedactor
+    from fintech_llm_guard.output_validator import OutputValidator
 
     # Instantiate each layer once — reuse across all cases
     sanitiser = InputSanitiser()

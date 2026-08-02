@@ -10,7 +10,7 @@ from pathlib import Path
 from datasets import load_dataset
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from middleware.sanitiser import InputSanitiser
+from fintech_llm_guard.sanitiser import InputSanitiser
 
 def run():
     print("Loading deepset/prompt-injections test split...")

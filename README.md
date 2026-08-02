@@ -6,13 +6,13 @@
 [![Status](https://img.shields.io/badge/status-development-purple.svg)](https://pypi.org/project/fintech-llm-guard/)
 [![Research](https://img.shields.io/badge/research-GSAM%202026-purple.svg)](https://pypi.org/project/fintech-llm-guard/)
 [![FPR](https://img.shields.io/badge/false%20positive%20rate-0%25-brightgreen.svg)](https://pypi.org/project/fintech-llm-guard/)
-[![Latency](https://img.shields.io/badge/mean%20latency-5.8ms-brightgreen.svg)](https://pypi.org/project/fintech-llm-guard/)
+[![Latency](https://img.shields.io/badge/mean%20latency-4.6--5.8ms-brightgreen.svg)](https://pypi.org/project/fintech-llm-guard/)
 
 A privacy-preserving and injection-resistant middleware layer for LLM-powered personal
 finance applications. Research project submitted to **GSAM 2026** (Global Symposium on
 Adaptive Manufacturing, Ulster University, 7 September 2026).
 
-**Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London  
+**Author:** Farhan Bin Hossain — Final Year Computing Systems, Ulster University London
 **Licence:** MIT
 
 ---
@@ -116,10 +116,10 @@ pipeline = GuardrailPipeline(llm_client=MyClient())
 The `transactions` argument is a list of dicts. Each dict should contain:
 
 | Field         | Type    | Required | Description                              |
-|---------------|---------|----------|------------------------------------------|
-| `date`        | string  | Yes      | Transaction date, e.g. `"2024-01-15"`   |
-| `amount`      | float   | Yes      | Amount — negative for debits             |
-| `description` | string  | Yes      | Merchant name or transaction description |
+|---------------|---------|----------|-------------------------------------------|
+| `date`        | string  | Yes      | Transaction date, e.g. `"2024-01-15"`     |
+| `amount`      | float   | Yes      | Amount — negative for debits              |
+| `description` | string  | Yes      | Merchant name or transaction description  |
 
 Example:
 
@@ -167,8 +167,10 @@ recall on attack classes outside the fintech threat model (e.g. generic roleplay
 jailbreaks).
 
 The consequence is visible in the results below: 100% precision and 0% false positives
-throughout, with a recall gap on out-of-domain injections. This is an intentional
-trade-off, not an oversight.
+throughout, with a recall gap on out-of-domain injections and, most notably, on two
+attack classes that are detected perfectly under literal phrasing but collapse under
+adversarial mutation (see *Known Limitations*). This is an intentional trade-off,
+openly measured — not an oversight.
 
 > **On PII defence vs PII exfiltration (V5):** the primary PII protection is
 > *input-side redaction* (Layer 3) — sensitive data is pseudonymised before it reaches
@@ -207,13 +209,13 @@ Layer 1 applies a multi-stage normalisation pipeline before pattern matching,
 defending against adaptive evasion techniques:
 
 | Technique         | Example                       | Defence                    |
-|-------------------|-------------------------------|----------------------------|
-| Homoglyphs        | `іgnore` (Cyrillic і)         | Unicode substitution map   |
-| Spaced characters | `i g n o r e`                 | Single-char space collapse |
-| Leetspeak         | `19n0r3`                      | Character substitution map |
-| Morse code        | `.. --. -. --- .-. .`         | Morse decoder              |
-| Zero-width chars  | `​ignore` (invisible prefix)  | Zero-width stripping       |
-| Base64 encoding   | `aWdub3Jl...`                 | Base64 decode + scan       |
+|-------------------|--------------------------------|-----------------------------|
+| Homoglyphs        | `іgnore` (Cyrillic і)          | Unicode substitution map   |
+| Spaced characters | `i g n o r e`                  | Single-char space collapse |
+| Leetspeak         | `19n0r3`                       | Character substitution map |
+| Morse code        | `.. --. -. --- .-. .`          | Morse decoder               |
+| Zero-width chars  | `​ignore` (invisible prefix)   | Zero-width stripping       |
+| Base64 encoding   | `aWdub3Jl...`                   | Base64 decode + scan       |
 
 ---
 
@@ -285,40 +287,64 @@ of each layer's design decisions.
 
 ## Evaluation Results
 
-> **Reading these results:** the 100% block rate is measured on the in-domain
-> fintech synthetic corpus. On the independent deepset dataset, recall is 18.3% —
-> see *Design Philosophy* above for why this is expected. Precision and 0% FPR
-> hold across every evaluation.
+> **Reading these results:** the 90.6% block rate is measured on the in-domain
+> fintech synthetic corpus and should be read as internal consistency, not
+> generalisation — see the corpus audit note below Table 1. On the independent
+> deepset dataset, recall is 18.3% — see *Design Philosophy* above for why this is
+> expected. Precision and 0% FPR hold across every evaluation surface.
 
 ### Static Corpus — 107 Cases, 8 Attack Vectors
 
-| Metric              | Value          |
-|---------------------|----------------|
-| Attack block rate   | 54/54 (100.0%) |
-| False positive rate | 0/60 (0.0%)    |
-| Mean latency        | 5.8ms          |
-| Median latency      | 5.3ms          |
+| Metric              | Value         |
+|----------------------|---------------|
+| Attack block rate   | 58/64 (90.6%) |
+| False positive rate | 0/43 (0.0%)   |
+| Mean latency        | 4.6–5.8ms     |
 
-### Adaptive Red-Team Evaluation — 377 Cases, 5 Mutation Strategies
+> **Corpus audit note:** an earlier evaluation run reported a 100% block rate
+> (54/54) and an 11.3% aggregate benign false-positive rate. Tracing this
+> discrepancy back to source revealed that 10 cases in the transaction-injection
+> (V2) and CSV-import-injection (V3) test files contained unambiguous injection
+> payloads but had been uniformly labelled `expected_blocked: False` during corpus
+> authoring. Correcting these 10 labels resolved both anomalies: the false-positive
+> rate fell to a genuine 0.0%, and the true block rate is 58/64 (90.6%) — lower
+> than originally reported, but now internally consistent and verified. Six of
+> the ten mislabelled cases were in fact being blocked correctly; four were not
+> (see *Known Limitations* below).
 
-| Attack Vector             | Original  | +Mutations | Benign FPR |
-|---------------------------|-----------|------------|------------|
-| Direct Override (V1)      | 100%      | 90.6%      | 0.0%       |
-| Obfuscated Injection (V6) | 88.9%     | 85.2%      | 0.0%       |
-| False Context (V8)        | 90.0%     | 78.3%      | 0.0%       |
-| Action Hijacking (V4)     | 10.0%     | 8.3%       | 0.0%       |
-| PII Exfiltration (V5)     | 0.0%      | 0.0%       | 0.0%       |
-| **Overall**               | **63.0%** | **57.1%**  | **11.3%**  |
+### Adaptive Red-Team Evaluation — 427 Cases, 5 Mutation Strategies
+
+| Attack Vector               | Static | Adaptive  | Benign FPR |
+|-------------------------------|--------|-----------|------------|
+| Direct Override (V1)          | 100%   | 90.6%     | 0.0%       |
+| Transaction Injection (V2)    | 50.0%  | 50.0%     | 0.0%       |
+| CSV Import Injection (V3)     | 75.0%  | 75.0%     | 0.0%       |
+| Action Hijacking (V4)         | 100%   | 8.3%      | 0.0%       |
+| PII Exfiltration (V5)         | 100%   | 0.0%      | 0.0%       |
+| Obfuscated Injection (V6)     | 88.9%  | 85.2%     | 0.0%       |
+| False Context (V8)            | 90.0%  | 78.3%     | 0.0%       |
+| **Overall**                    | 90.6%  | **57.6%** | **0.0%**   |
 
 Mutation strategies: paraphrase, case mangling, whitespace insertion, Base64
 encoding, prefix noise.
+
+> **Reading V4/V5:** both are detected perfectly under the literal phrasing used
+> to construct the static corpus, but collapse under mutation. This is the
+> project's most important negative result — the output validator and canary
+> stage recognise the exact structural/lexical form they were built against, but
+> do not yet generalise to paraphrase, encoding, or noise. See *Known Limitations*.
+>
+> **Reading V2/V3:** detection is identical across all five mutation strategies,
+> indicating a lexical vocabulary gap in the provenance scanner (e.g. "rules" vs.
+> "instructions", hyphenated vs. space-delimited phrasing) rather than a
+> mutation-robustness issue.
 
 ### External Evaluation — deepset/prompt-injections (116 real-world cases)
 
 Layer 1 evaluated against an independent dataset not used during development.
 
 | Metric              | Value                             |
-|---------------------|-----------------------------------|
+|----------------------|-------------------------------------|
 | Precision           | 100.0%                            |
 | Recall              | 18.3% (11/60 injections detected) |
 | False positive rate | 0.0% (0/56 benign cases)          |
@@ -330,34 +356,34 @@ Layer 1 evaluated against an independent dataset not used during development.
 
 ### Baseline Comparison
 
-| Metric                    | Presidio | LLM Guard | deepset DeBERTa | PromptGuard 86M | **Ours**   |
-|---------------------------|----------|-----------|-----------------|-----------------|------------|
-| Internal block rate       | N/A      | 68.5%     | —               | —               | **100.0%** |
-| External recall           | —        | —         | **98.3%**       | 68.3%           | 18.3%      |
-| Precision                 | —        | —         | 100.0%          | 47.7%           | **100.0%** |
-| False positive rate       | —        | 0.0%      | 0.0%            | 80.4%           | **0.0%**   |
-| Mean latency              | —        | 300.3ms   | 318.7ms         | 291.1ms         | **5.8ms**  |
-| PII redaction             | Yes      | No        | No              | No              | Yes        |
-| Injection defence         | No       | Yes       | Yes             | Yes             | Yes        |
-| Output validation         | No       | No        | No              | No              | Yes        |
-| Action allowlisting       | No       | No        | No              | No              | Yes        |
-| Provenance tracking       | No       | No        | No              | No              | Yes        |
-| Canary detection          | No       | No        | No              | No              | Yes        |
-| Fintech-specific entities | No       | No        | No              | No              | Yes        |
-| Response re-mapping       | No       | No        | No              | No              | Yes        |
+| Metric                    | Presidio | LLM Guard | deepset DeBERTa | PromptGuard 86M | **Ours**       |
+|-----------------------------|----------|-----------|------------------|-------------------|-----------------|
+| Internal block rate       | N/A      | 68.5%     | —                | —                 | **90.6%**       |
+| External recall           | —        | —         | **98.3%**        | 68.3%             | 18.3%           |
+| Precision                 | —        | —         | 100.0%           | 47.7%             | **100.0%**      |
+| False positive rate       | —        | 0.0%      | 0.0%             | 80.4%             | **0.0%**        |
+| Mean latency               | —        | 300.3ms   | 318.7ms          | 291.1ms           | **4.6–5.8ms**   |
+| PII redaction              | Yes      | No        | No               | No                 | Yes             |
+| Injection defence          | No       | Yes       | Yes              | Yes                | Yes             |
+| Output validation          | No       | No        | No               | No                 | Yes             |
+| Action allowlisting        | No       | No        | No               | No                 | Yes             |
+| Provenance tracking        | No       | No        | No               | No                 | Yes             |
+| Canary detection           | No       | No        | No               | No                 | Yes             |
+| Fintech-specific entities  | No       | No        | No               | No                 | Yes             |
+| Response re-mapping        | No       | No        | No               | No                 | Yes             |
 
 Our system is the only baseline with 0% FPR. PromptGuard 86M misclassifies 80% of
-legitimate financial queries as attacks. Our system is **51x faster than LLM Guard**
-and **55x faster than deepset DeBERTa**, while being the only solution combining all
-eight defensive capabilities in a single pipeline.
+legitimate financial queries as attacks. Our system is **roughly 50–65x faster than
+LLM Guard** and **roughly 55–69x faster than deepset DeBERTa**, while being the only
+solution combining all eight defensive capabilities in a single pipeline.
 
 ### Semantic Preservation
 
 | Metric       | Score | Notes                                    |
-|--------------|-------|------------------------------------------|
+|--------------|-------|-------------------------------------------|
 | ROUGE-1      | 0.986 | High n-gram overlap after PII re-mapping |
-| ROUGE-2      | 0.967 |                                          |
-| ROUGE-L      | 0.986 |                                          |
+| ROUGE-2      | 0.967 |                                            |
+| ROUGE-L      | 0.986 |                                            |
 | BERTScore F1 | 0.772 | Semantic cost of token substitution      |
 
 ---
@@ -370,8 +396,9 @@ eight defensive capabilities in a single pipeline.
 pipeline does not yet gate *requested intent* between Layer 3 (redaction) and the
 LLM, so a malicious action-request (e.g. an injected `transfer` instruction) is
 processed by the model and caught only afterwards. This is the primary reason the
-Action Hijacking (V4) vector scores lower than the override-based vectors — there
-is one defensive layer behind it rather than two.
+Action Hijacking (V4) vector, while detected perfectly under literal test phrasing,
+collapses to 8.3% under adversarial mutation — there is one defensive layer behind
+it rather than two, and that layer is a pattern matcher rather than an intent model.
 
 **Current mitigation:** Layer 4b (action allowlist) validates every action the LLM
 emits against a set of approved function calls and blocks anything unapproved. This
@@ -388,35 +415,49 @@ design remains deterministic and preserves the hard 0% false-positive constraint
 
 ### Output-side PII exfiltration (V5)
 
-**Known gap:** V5 (PII exfiltration via crafted response) scores 0% detection.
-The primary PII defence is input-side — Layer 3 redacts sensitive data before it
-reaches the LLM. V5 tests the harder problem of output-side exfiltration, where a
-compromised model encodes its context window into a crafted response. This is scoped
-as future work.
+**Known gap:** V5 (PII exfiltration via crafted response) is detected perfectly
+under literal test phrasing but falls to 0% under mutation. The primary PII
+defence is input-side — Layer 3 redacts sensitive data before it reaches the LLM.
+V5 tests the harder problem of output-side exfiltration, where a compromised model
+encodes its context window into a crafted response; the canary stage catches
+extraction of planted tokens but does not yet catch novel encodings of genuine
+prior context. This is scoped as future work.
+
+### Indirect-injection vocabulary gap (V2/V3)
+
+**Known gap:** the provenance scanner (Layer 0a) detects 50% of transaction-description
+injections (V2) and 75% of CSV-import injections (V3), identically across all five
+mutation strategies tested. Manual review of missed cases shows the gap is lexical
+rather than adversarial: the scanner's pattern set matches "instructions" but not
+"rules", space-delimited phrasing but not hyphen- or slash-delimited variants, and a
+narrower set of exfiltration verbs than the direct-injection scanner uses. Because
+detection depends on vocabulary match, mutating the surrounding text does not change
+the outcome. Planned fix: broaden the provenance scanner's pattern vocabulary to
+match the direct-injection scanner's coverage.
 
 ---
 
 ## Project Status
 
-| Component                                    | Status      |
-|----------------------------------------------|-------------|
-| Layer 0a — Provenance tracker                | Complete    |
-| Layer 0b — Risk scorer                       | Complete    |
-| Layer 1 — Input sanitiser                    | Complete    |
-| Layer 2 — Structural separator               | Complete    |
-| Layer 3 — PII redactor                       | Complete    |
-| Layer 4a — Output validator                  | Complete    |
-| Layer 4b — Action allowlist                  | Complete    |
-| Canary token system                          | Complete    |
-| Obfuscation-resistant normalisation          | Complete    |
-| Static attack corpus (107 cases, 8 vectors)  | Complete    |
-| Adaptive red-team evaluator (377 cases)      | Complete    |
-| External evaluation (deepset, 116 cases)     | Complete    |
-| Baseline comparison (4 systems)              | Complete    |
-| ROUGE semantic preservation evaluation       | Complete    |
-| BERTScore semantic evaluation                | Complete    |
-| L3b tiered intent gate                       | Planned     |
-| GSAM 2026 paper submission                   | In progress |
+| Component                                    | Status                              |
+|------------------------------------------------|--------------------------------------|
+| Layer 0a — Provenance tracker                | Complete                            |
+| Layer 0b — Risk scorer                       | Complete                            |
+| Layer 1 — Input sanitiser                    | Complete                            |
+| Layer 2 — Structural separator               | Complete                            |
+| Layer 3 — PII redactor                       | Complete                            |
+| Layer 4a — Output validator                  | Complete                            |
+| Layer 4b — Action allowlist                  | Complete                            |
+| Canary token system                          | Complete                            |
+| Obfuscation-resistant normalisation          | Complete                            |
+| Static attack corpus (107 cases, 8 vectors)  | Complete — labelling audit applied  |
+| Adaptive red-team evaluator (427 cases)      | Complete                            |
+| External evaluation (deepset, 116 cases)     | Complete                            |
+| Baseline comparison (4 systems)              | Complete                            |
+| ROUGE semantic preservation evaluation       | Complete                            |
+| BERTScore semantic evaluation                | Complete                            |
+| L3b tiered intent gate                       | Planned                             |
+| GSAM 2026 paper submission                   | In progress                         |
 
 ---
 
@@ -438,7 +479,7 @@ endpoint. Tested with Groq-compatible, OpenAI-compatible, and local Ollama endpo
 ## Research Context
 
 > **"Fintech LLM Guardrails: A Deployable Privacy-Preserving Middleware for
-> Intelligent Financial Assistants"**  
+> Intelligent Financial Assistants"**
 > GSAM 2026 — Global Symposium on Adaptive Manufacturing, Ulster University,
 > 7 September 2026
 
