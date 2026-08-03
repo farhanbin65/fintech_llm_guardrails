@@ -22,25 +22,21 @@ from typing import List, Optional, Dict
 # Function calls and shell commands that should never appear in a
 # finance chatbot response. Grouped for readability.
 BLOCKED_FUNCTION_PATTERNS = [
-    # Financial actions
-    r"\btransfer\s*\(",
-    r"\bsend\s*\(",
-    r"\bdelete\s*\(",
-    r"\bwithdraw\s*\(",
-    r"\bpay\s*\(",
-    r"\bupdate\s*\(",
-    r"\bsubmit\s*\(",
-    # Code execution
-    r"\bexecute\s*\(",
+    r"transfer\w*\s*\(",
+    r"send\w*\s*\(",
+    r"delete\w*\s*\(",
+    r"withdraw\w*\s*\(",
+    r"\bpay\w*\s*\(",
+    r"update\w*\s*\(",
+    r"submit\w*\s*\(",
+    r"execute\w*\s*\(",
     r"\bexec\s*\(",
     r"\beval\s*\(",
-    r"\brun\s*\(",
-    r"\bos\s*\.\s*system\s*\(",
-    r"\bsubprocess\s*\.",
-    # Shell commands
+    r"\brun\w*\s*\(",
+    r"os\s*\.\s*system\s*\(",
+    r"subprocess\s*\.",
     r"\bwget\s+https?://",
     r"\bcurl\s+(-[a-zA-Z]+\s+)*https?://",
-    # Script tags
     r"<script[\s>]",
 ]
 
@@ -122,6 +118,18 @@ class OutputValidator:
                 continue
         return flagged
 
+    def _check_base64_function_calls(self, text: str) -> List[str]:
+        flagged = []
+        for token in _B64_TOKEN_RE.findall(text):
+            try:
+                decoded = base64.b64decode(token).decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+            matches = [p.pattern for p in self.function_patterns if p.search(decoded)]
+            if matches:
+                flagged.append(f"base64({token[:30]}…) decodes to function call: {decoded[:80]}")
+        return flagged
+
     def _check_pii_token_leakage(
         self, text: str, mapping: Optional[Dict[str, str]] = None
     ) -> List[str]:
@@ -146,6 +154,12 @@ class OutputValidator:
             if fn_matches:
                 reasons.append("Unauthorised function call detected")
                 flagged.extend(fn_matches)
+
+            # Check 1b: function calls hidden inside Base64-encoded content
+            b64_fn_matches = self._check_base64_function_calls(response_text)
+            if b64_fn_matches:
+                reasons.append("Base64-encoded function call detected")
+                flagged.extend(b64_fn_matches)
 
             # Check 2: external URLs and data URIs
             urls = self._check_external_urls(response_text)

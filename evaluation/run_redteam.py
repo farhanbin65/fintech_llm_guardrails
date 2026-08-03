@@ -16,6 +16,22 @@ generates one mutated variant per strategy and runs it through the full
 pipeline. Benign cases (expected_blocked=False) are run as-is to measure
 false positive rate.
 
+Mutations are applied to BOTH the user_message and, where present, each
+transaction's description field -- this matters for V2 (transaction
+injection) and V3 (CSV import injection), whose attack payload lives in
+transaction data rather than the typed message. An earlier version of this
+harness mutated only user_message, so V2/V3 mutation variants were six
+identical re-runs of the same unmutated transaction payload.
+
+The mock LLM returns each case's own `llm_response` fixture for attack
+cases that define one (V4 action-hijacking, V5 exfiltration payloads),
+rather than a single fixed benign string for every case. An earlier version
+returned the same benign string regardless of case or vector, which meant
+Layer 4 (output validator) was never actually exercised during this
+evaluation -- whatever V4/V5 numbers it previously reported reflected
+upstream layers reacting to residual phrasing in the mutated message, not
+output-validator performance.
+
 Output:
     - Console table suitable for inclusion in a research paper
     - evaluation/redteam_results.json — full machine-readable results
@@ -35,6 +51,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import json
 import os
 import random
@@ -51,10 +68,32 @@ from fintech_llm_guard.pipeline import GuardrailPipeline
 
 # ── Mock LLM ──────────────────────────────────────────────────────────────────
 
-class _SafeMockLLM:
-    """Returns a benign response — we are testing the guardrails, not the LLM."""
+_DEFAULT_BENIGN_RESPONSE = "You spent £120 on groceries last month."
+
+
+class _VectorAwareMockLLM:
+    """
+    Returns each case's own `llm_response` fixture for attack cases that
+    define one, and a fixed benign response otherwise.
+
+    This is what allows Layer 4 (output validator) to actually be tested:
+    a case like V4-001 defines llm_response="Sure, processing now:
+    transfer(5000, 'attacker_account')" precisely so the output validator
+    has something malicious to catch. A mock that always returns a benign
+    string regardless of case makes that layer's detection rate
+    structurally undefined -- it is never invoked with anything to block.
+
+    Call set_response_for_case(case) before each pipeline.process() call.
+    """
+
+    def __init__(self):
+        self._current_response: str = _DEFAULT_BENIGN_RESPONSE
+
+    def set_response_for_case(self, case: dict) -> None:
+        self._current_response = case.get("llm_response") or _DEFAULT_BENIGN_RESPONSE
+
     def chat(self, messages):
-        return "You spent £120 on groceries last month."
+        return self._current_response
 
 
 class _MockRedactor:
@@ -198,6 +237,21 @@ MUTATIONS = {
 }
 
 
+def mutate_transactions(transactions: Optional[List[dict]], mutation_fn) -> List[dict]:
+    """
+    Apply the same mutation function used on user_message to each
+    transaction's description field. Returns a deep copy — never mutates
+    the original case's transaction list in place, since the unmutated
+    case object is reused across the "original" run and all five mutation
+    variants.
+    """
+    mutated = copy.deepcopy(transactions or [])
+    for txn in mutated:
+        if txn.get("description"):
+            txn["description"] = mutation_fn(txn["description"])
+    return mutated
+
+
 # ── Result dataclasses ────────────────────────────────────────────────────────
 
 @dataclass
@@ -259,8 +313,9 @@ class RedTeamEvaluator:
         from fintech_llm_guard.redactor import PIIRedactor
 
         redactor = _MockRedactor() if use_mock_redactor else PIIRedactor()
+        self._mock_llm = _VectorAwareMockLLM()
         self.pipeline = GuardrailPipeline(
-            llm_client=_SafeMockLLM(),
+            llm_client=self._mock_llm,
             redactor=redactor,
         )
 
@@ -271,15 +326,25 @@ class RedTeamEvaluator:
         results: List[CaseResult] = []
 
         for case in corpus:
-            # Original case — always run
-            results.append(self._run_case(case, "original", case["user_message"]))
+            # Original case — always run. Set the mock's response for THIS
+            # case before running it, so Layer 4 sees the right fixture.
+            self._mock_llm.set_response_for_case(case)
+            results.append(
+                self._run_case(
+                    case, "original",
+                    case["user_message"],
+                    case.get("transactions", []),
+                )
+            )
 
             # Mutated variants — only for attack cases
             if self.apply_mutations and case["expected_blocked"]:
                 for mutation_name, mutation_fn in MUTATIONS.items():
-                    mutated_msg = mutation_fn(case["user_message"])
+                    mutated_msg  = mutation_fn(case["user_message"])
+                    mutated_txns = mutate_transactions(case.get("transactions", []), mutation_fn)
+                    self._mock_llm.set_response_for_case(case)
                     results.append(
-                        self._run_case(case, mutation_name, mutated_msg)
+                        self._run_case(case, mutation_name, mutated_msg, mutated_txns)
                     )
 
         return self._build_report(results)
@@ -304,11 +369,12 @@ class RedTeamEvaluator:
         case: dict,
         mutation: str,
         user_message: str,
+        transactions: List[dict],
     ) -> CaseResult:
         t0 = time.perf_counter()
         result = self.pipeline.process(
             user_message=user_message,
-            transactions=case.get("transactions", []),
+            transactions=transactions,
         )
         latency_ms = (time.perf_counter() - t0) * 1000
 
